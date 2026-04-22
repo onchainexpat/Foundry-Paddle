@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 import { z } from "zod";
+import { neon } from "@neondatabase/serverless";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.join(__dirname, "dist");
@@ -66,6 +67,163 @@ app.post("/api/register-interest", async (req, res) => {
     console.error("[register-interest] Unexpected error", {
       message: error instanceof Error ? error.message : "Unknown error",
     });
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Database
+// ---------------------------------------------------------------------------
+
+const DATABASE_URL = process.env.DATABASE_URL;
+const sql = DATABASE_URL ? neon(DATABASE_URL) : null;
+
+function requireDb(req, res, next) {
+  if (!sql) {
+    console.error("[events] DATABASE_URL not configured");
+    return res.status(503).json({ error: "Database not configured." });
+  }
+  next();
+}
+
+// ---------------------------------------------------------------------------
+// Public events API
+// ---------------------------------------------------------------------------
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+app.get("/api/events", requireDb, async (req, res) => {
+  const { date } = req.query;
+  if (!date || !DATE_REGEX.test(date)) {
+    return res.status(400).json({ error: "Query param 'date' required (YYYY-MM-DD)." });
+  }
+
+  try {
+    const rows = await sql`
+      SELECT id, title, date::text, start_time::text, end_time::text, duration_min, spots_left, total_spots
+      FROM events
+      WHERE date = ${date}
+      ORDER BY start_time ASC
+    `;
+    return res.json(rows);
+  } catch (error) {
+    console.error("[events] Query failed", { message: error instanceof Error ? error.message : error });
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin auth
+// ---------------------------------------------------------------------------
+
+function requireAdmin(req, res, next) {
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    return res.status(503).json({ error: "Admin not configured." });
+  }
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token || token !== adminPassword) {
+    return res.status(401).json({ error: "Unauthorized." });
+  }
+  next();
+}
+
+// ---------------------------------------------------------------------------
+// Admin events CRUD
+// ---------------------------------------------------------------------------
+
+const eventSchema = z.object({
+  title: z.string().trim().min(1).max(500),
+  date: z.string().regex(DATE_REGEX, "Must be YYYY-MM-DD"),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/, "Must be HH:MM"),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/, "Must be HH:MM"),
+  duration_min: z.number().int().min(1).max(1440),
+  spots_left: z.number().int().min(0).default(0),
+  total_spots: z.number().int().min(0).default(0),
+});
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+app.get("/api/admin/events", requireDb, requireAdmin, async (_req, res) => {
+  try {
+    const rows = await sql`
+      SELECT id, title, date::text, start_time::text, end_time::text, duration_min, spots_left, total_spots, created_at, updated_at
+      FROM events ORDER BY date ASC, start_time ASC
+    `;
+    return res.json(rows);
+  } catch (error) {
+    console.error("[admin/events] List failed", { message: error instanceof Error ? error.message : error });
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+app.post("/api/admin/events", requireDb, requireAdmin, async (req, res) => {
+  const parsed = eventSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Validation failed.", issues: parsed.error.issues });
+  }
+  const d = parsed.data;
+
+  try {
+    const rows = await sql`
+      INSERT INTO events (title, date, start_time, end_time, duration_min, spots_left, total_spots)
+      VALUES (${d.title}, ${d.date}, ${d.start_time}, ${d.end_time}, ${d.duration_min}, ${d.spots_left}, ${d.total_spots})
+      RETURNING id, title, date::text, start_time::text, end_time::text, duration_min, spots_left, total_spots, created_at, updated_at
+    `;
+    return res.status(201).json(rows[0]);
+  } catch (error) {
+    console.error("[admin/events] Create failed", { message: error instanceof Error ? error.message : error });
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+app.put("/api/admin/events/:id", requireDb, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (!UUID_REGEX.test(id)) {
+    return res.status(400).json({ error: "Invalid event ID." });
+  }
+
+  const parsed = eventSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Validation failed.", issues: parsed.error.issues });
+  }
+  const d = parsed.data;
+
+  try {
+    const rows = await sql`
+      UPDATE events
+      SET title = ${d.title}, date = ${d.date}, start_time = ${d.start_time}, end_time = ${d.end_time},
+          duration_min = ${d.duration_min}, spots_left = ${d.spots_left}, total_spots = ${d.total_spots},
+          updated_at = now()
+      WHERE id = ${id}
+      RETURNING id, title, date::text, start_time::text, end_time::text, duration_min, spots_left, total_spots, created_at, updated_at
+    `;
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Event not found." });
+    }
+    return res.json(rows[0]);
+  } catch (error) {
+    console.error("[admin/events] Update failed", { message: error instanceof Error ? error.message : error });
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+app.delete("/api/admin/events/:id", requireDb, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (!UUID_REGEX.test(id)) {
+    return res.status(400).json({ error: "Invalid event ID." });
+  }
+
+  try {
+    const rows = await sql`
+      DELETE FROM events WHERE id = ${id} RETURNING id
+    `;
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Event not found." });
+    }
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("[admin/events] Delete failed", { message: error instanceof Error ? error.message : error });
     return res.status(500).json({ error: "Internal server error." });
   }
 });

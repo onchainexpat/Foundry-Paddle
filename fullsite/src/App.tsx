@@ -12,6 +12,7 @@ import Memberships from "./pages/Memberships";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import Book from "./pages/Book";
+import Admin from "./pages/Admin";
 
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -25,18 +26,28 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
-        <Header />
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/the-sport" element={<TheSport />} />
-          <Route path="/the-club" element={<TheClub />} />
-          <Route path="/memberships" element={<Memberships />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/book" element={<Book />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route
+            path="*"
+            element={
+              <>
+                <Header />
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/the-sport" element={<TheSport />} />
+                  <Route path="/the-club" element={<TheClub />} />
+                  <Route path="/memberships" element={<Memberships />} />
+                  <Route path="/faq" element={<FAQ />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/book" element={<Book />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <Footer />
+              </>
+            }
+          />
         </Routes>
-        <Footer />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

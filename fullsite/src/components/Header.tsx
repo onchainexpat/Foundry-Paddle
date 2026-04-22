@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { BOOK_PAGE_PATH } from "@/constants/booking";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import EventsModal from "@/components/EventsModal";
 
 const navLinks = [
   { label: "HOME", path: "/" },
@@ -37,6 +38,11 @@ const Header = () => {
               {link.label}
             </Link>
           ))}
+          <EventsModal>
+            <button className="font-body text-xs tracking-[0.2em] uppercase text-muted-foreground transition-colors hover:text-primary">
+              EVENTS
+            </button>
+          </EventsModal>
           <Link
             to={BOOK_PAGE_PATH}
             className={`border border-primary px-6 py-2 font-display text-sm tracking-widest transition-all hover:bg-primary hover:text-primary-foreground ${
@@ -79,6 +85,14 @@ const Header = () => {
                   {link.label}
                 </Link>
               ))}
+              <EventsModal>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="font-body text-sm tracking-[0.2em] uppercase text-muted-foreground transition-colors hover:text-primary"
+                >
+                  EVENTS
+                </button>
+              </EventsModal>
               <Link
                 to={BOOK_PAGE_PATH}
                 onClick={() => setMobileOpen(false)}

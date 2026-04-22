@@ -67,3 +67,5 @@ Manual verification requested:
 - For US-only phone UX, fixed `+1` prefix in the field is clearer than asking users to type country code.
 - When console logs contain many extension errors, isolate first-party origin/network failures first; fix CORS/HTTP path before extension warnings.
 - For third-party webhook integrations from frontend, avoid direct browser calls; use same-origin backend relay to bypass CORS and centralize validation/logging.
+- Neon serverless driver converts DATE and TIME columns to JS Date objects which causes timezone drift when serialized to JSON. Use `::text` cast in SQL SELECT queries to get plain string values (`YYYY-MM-DD`, `HH:MM:SS`).
+- When running Vite dev server alongside Express backend, add a `proxy` entry in `vite.config.ts` for `/api` routes to forward to the backend port.
