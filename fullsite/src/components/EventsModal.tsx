@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, Clock, Loader2 } from "lucide-react";
+import EventSignupForm from "./EventSignupForm";
 import { addDays, format, isSameDay, startOfDay } from "date-fns";
 
 // ---------------------------------------------------------------------------
@@ -152,6 +153,9 @@ function SpotsIndicator({
 }
 
 function EventCard({ event }: { event: PadelEvent }) {
+  const [signupOpen, setSignupOpen] = useState(false);
+  const isFull = event.spots_left <= 0;
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-border px-4 py-5 sm:px-6 last:border-b-0">
       <div className="flex items-center gap-2 sm:w-36 shrink-0">
@@ -179,6 +183,35 @@ function EventCard({ event }: { event: PadelEvent }) {
             totalSpots={event.total_spots}
           />
         </div>
+
+        <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
+          <button
+            onClick={() => !isFull && setSignupOpen(true)}
+            disabled={isFull}
+            className={`border px-5 py-2 text-xs font-display tracking-widest transition-all ${
+              isFull
+                ? "border-muted-foreground/30 text-muted-foreground cursor-not-allowed"
+                : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            }`}
+          >
+            {isFull ? "FULL" : "SIGN UP"}
+          </button>
+          <DialogContent className="max-w-sm z-[150]">
+            <DialogHeader>
+              <DialogTitle className="font-display text-xl tracking-widest">
+                SIGN UP
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                {event.title}
+              </DialogDescription>
+            </DialogHeader>
+            <EventSignupForm
+              eventId={event.id}
+              eventTitle={event.title}
+              onSuccess={() => setSignupOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Pencil, Trash2, LogIn } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, LogIn, Users } from "lucide-react";
 
 function toTimeHHMM(t: string): string {
   return t.slice(0, 5);
@@ -40,6 +40,15 @@ interface PadelEvent {
   total_spots: number;
   created_at: string;
   updated_at: string;
+  signup_count: number;
+}
+
+interface EventSignup {
+  id: string;
+  name: string;
+  email: string;
+  mobile: string | null;
+  created_at: string;
 }
 
 interface EventPayload {
@@ -117,6 +126,17 @@ async function deleteEvent(
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || "Delete failed");
   }
+}
+
+async function fetchSignups(
+  password: string,
+  eventId: string,
+): Promise<EventSignup[]> {
+  const res = await fetch(`/api/admin/events/${eventId}/signups`, {
+    headers: authHeaders(password),
+  });
+  if (!res.ok) throw new Error("Failed to load signups");
+  return res.json();
 }
 
 // ---------------------------------------------------------------------------
@@ -323,6 +343,13 @@ function Dashboard({ password }: { password: string }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<PadelEvent | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PadelEvent | null>(null);
+  const [signupsEvent, setSignupsEvent] = useState<PadelEvent | null>(null);
+
+  const { data: signups = [], isLoading: signupsLoading } = useQuery({
+    queryKey: ["admin-signups", signupsEvent?.id],
+    queryFn: () => fetchSignups(password, signupsEvent!.id),
+    enabled: !!signupsEvent,
+  });
 
   const invalidate = useCallback(
     () => queryClient.invalidateQueries({ queryKey: ["admin-events"] }),
@@ -436,6 +463,9 @@ function Dashboard({ password }: { password: string }) {
                   <th className="px-4 py-3 font-medium uppercase tracking-wider text-muted-foreground text-xs">
                     Spots
                   </th>
+                  <th className="px-4 py-3 font-medium uppercase tracking-wider text-muted-foreground text-xs">
+                    Signups
+                  </th>
                   <th className="px-4 py-3 font-medium uppercase tracking-wider text-muted-foreground text-xs w-24">
                     Actions
                   </th>
@@ -459,6 +489,15 @@ function Dashboard({ password }: { password: string }) {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {ev.spots_left} / {ev.total_spots}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => setSignupsEvent(ev)}
+                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        {ev.signup_count}
+                      </button>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -554,6 +593,77 @@ function Dashboard({ password }: { password: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Signups detail dialog */}
+      <Dialog
+        open={!!signupsEvent}
+        onOpenChange={(v) => !v && setSignupsEvent(null)}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl tracking-widest">
+              SIGNUPS
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {signupsEvent?.title} — {signupsEvent?.date && formatDate(signupsEvent.date)}
+            </DialogDescription>
+          </DialogHeader>
+          {signupsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : signups.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No signups yet.
+            </p>
+          ) : (
+            <div className="max-h-[50vh] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th className="px-3 py-2 font-medium uppercase tracking-wider text-muted-foreground text-xs">
+                      Name
+                    </th>
+                    <th className="px-3 py-2 font-medium uppercase tracking-wider text-muted-foreground text-xs">
+                      Email
+                    </th>
+                    <th className="px-3 py-2 font-medium uppercase tracking-wider text-muted-foreground text-xs">
+                      Mobile
+                    </th>
+                    <th className="px-3 py-2 font-medium uppercase tracking-wider text-muted-foreground text-xs">
+                      Signed Up
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {signups.map((s) => (
+                    <tr
+                      key={s.id}
+                      className="border-b border-border last:border-b-0"
+                    >
+                      <td className="px-3 py-2">{s.name}</td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {s.email}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {s.mobile || "—"}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                        {new Date(s.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

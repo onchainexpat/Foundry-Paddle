@@ -147,8 +147,16 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 app.get("/api/admin/events", requireDb, requireAdmin, async (_req, res) => {
   try {
     const rows = await sql`
-      SELECT id, title, date::text, start_time::text, end_time::text, duration_min, spots_left, total_spots, created_at, updated_at
-      FROM events ORDER BY date ASC, start_time ASC
+      SELECT e.id, e.title, e.date::text, e.start_time::text, e.end_time::text,
+             e.duration_min, e.spots_left, e.total_spots, e.created_at, e.updated_at,
+             COALESCE(s.signup_count, 0)::int AS signup_count
+      FROM events e
+      LEFT JOIN (
+        SELECT event_id, COUNT(*)::int AS signup_count
+        FROM event_signups
+        GROUP BY event_id
+      ) s ON s.event_id = e.id
+      ORDER BY e.date ASC, e.start_time ASC
     `;
     return res.json(rows);
   } catch (error) {
@@ -224,6 +232,86 @@ app.delete("/api/admin/events/:id", requireDb, requireAdmin, async (req, res) =>
     return res.json({ ok: true });
   } catch (error) {
     console.error("[admin/events] Delete failed", { message: error instanceof Error ? error.message : error });
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Public signup endpoint
+// ---------------------------------------------------------------------------
+
+const signupSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email().max(255),
+  mobile: z.preprocess(
+    (v) => {
+      if (v === undefined || v === null) return undefined;
+      if (typeof v === "string" && v.trim() === "") return undefined;
+      return v;
+    },
+    z.string().regex(E164_MOBILE_REGEX).optional(),
+  ),
+});
+
+app.post("/api/events/:id/signup", requireDb, async (req, res) => {
+  const { id } = req.params;
+  if (!UUID_REGEX.test(id)) {
+    return res.status(400).json({ error: "Invalid event ID." });
+  }
+
+  const parsed = signupSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Validation failed.", issues: parsed.error.issues });
+  }
+  const { name, email, mobile } = parsed.data;
+
+  try {
+    const events = await sql`
+      SELECT id, spots_left FROM events WHERE id = ${id}
+    `;
+    if (events.length === 0) {
+      return res.status(404).json({ error: "Event not found." });
+    }
+    if (events[0].spots_left <= 0) {
+      return res.status(409).json({ error: "No spots left for this event." });
+    }
+
+    await sql`
+      INSERT INTO event_signups (event_id, name, email, mobile)
+      VALUES (${id}, ${name}, ${email}, ${mobile ?? null})
+    `;
+
+    await sql`
+      UPDATE events SET spots_left = spots_left - 1 WHERE id = ${id} AND spots_left > 0
+    `;
+
+    return res.status(201).json({ ok: true });
+  } catch (error) {
+    console.error("[signup] Failed", { message: error instanceof Error ? error.message : error });
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin signups endpoint
+// ---------------------------------------------------------------------------
+
+app.get("/api/admin/events/:id/signups", requireDb, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (!UUID_REGEX.test(id)) {
+    return res.status(400).json({ error: "Invalid event ID." });
+  }
+
+  try {
+    const rows = await sql`
+      SELECT id, name, email, mobile, created_at
+      FROM event_signups
+      WHERE event_id = ${id}
+      ORDER BY created_at ASC
+    `;
+    return res.json(rows);
+  } catch (error) {
+    console.error("[admin/signups] Query failed", { message: error instanceof Error ? error.message : error });
     return res.status(500).json({ error: "Internal server error." });
   }
 });

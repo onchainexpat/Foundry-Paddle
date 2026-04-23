@@ -38,19 +38,16 @@ Update (2026-04-09): User now reports form submission failure with browser conso
 
 # Current Status / Progress Tracking
 
-- Executor implementation complete for backend relay migration:
-  - Added `POST /api/register-interest` in `server.js` with Zod validation for `name`, `email`, `mobile`, and optional `source`.
-  - Added upstream forwarding to Make webhook server-side, with controlled error responses (`400` validation, `502` upstream failure, `500` unexpected).
-  - Added non-sensitive debug logs for validation issues and upstream status/body preview.
-  - Updated `src/components/RegisterSection.tsx` to submit to `/api/register-interest` and include `source: "home"`.
-  - Updated `fullsite/src/components/StayInTouchForm.tsx` to submit to `/api/register-interest` (no direct Make call from browser).
-  - Removed direct webhook URL export from `fullsite/src/lib/interestWebhook.ts`.
-- Lint diagnostics run for all touched files; no linter errors found.
-- Additional diagnosis after user retest:
-  - Observed upstream response directly from Make webhook URL: `HTTP 410 Webhook not found`.
-  - This explains backend `502` from `/api/register-interest` (relay receives upstream non-2xx).
-  - Updated `fullsite/src/components/InterestEmailForm.tsx` to also use `/api/register-interest` (avoids legacy direct Make browser calls).
-  - Expanded backend payload schema to allow `source: "book"` and optional `mobile` for email-only notify flows.
+- Executor implementation complete for backend relay migration (previous task).
+- **Event Signup Flow — COMPLETE (2026-04-23):**
+  - Created `event_signups` table in Neon DB with foreign key to events + index on event_id.
+  - Added `POST /api/events/:id/signup` public endpoint with Zod validation, spots check, insert + spots decrement.
+  - Added `GET /api/admin/events/:id/signups` admin endpoint (protected by requireAdmin middleware).
+  - Updated `GET /api/admin/events` to include `signup_count` via LEFT JOIN on event_signups.
+  - Created `EventSignupForm.tsx` — compact signup form with name/email/mobile fields, country code selector, honeypot + math captcha, localStorage persistence (key: `foundry_user`), React Query invalidation on success.
+  - Added SIGN UP / FULL button to EventCard in EventsModal.tsx, opening signup form in nested Dialog.
+  - Added clickable signups count column + detail dialog to Admin.tsx events table.
+  - End-to-end tested: signup from modal works, spots decrement correctly, admin signups view shows all signups with details, localStorage pre-fill works on subsequent form opens.
 
 # Executor's Feedback or Assistance Requests
 
