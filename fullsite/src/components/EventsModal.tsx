@@ -45,6 +45,20 @@ async function fetchEvents(date: string): Promise<PadelEvent[]> {
 const today = startOfDay(new Date());
 const VISIBLE_DAYS = 9;
 
+const TYPE_LABELS: Record<string, string> = {
+  COURSE_CLASS: "Course",
+  PUBLIC_CLASS: "Clinic",
+  PRIVATE_CLASS: "Private Class",
+  TOURNAMENT: "Tournament",
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  COURSE_CLASS: "bg-primary/15 text-primary",
+  PUBLIC_CLASS: "bg-emerald-500/15 text-emerald-400",
+  PRIVATE_CLASS: "bg-amber-500/15 text-amber-400",
+  TOURNAMENT: "bg-violet-500/15 text-violet-400",
+};
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -135,8 +149,43 @@ function formatPrice(price: string | null) {
   return `${symbol}${num % 1 === 0 ? num.toFixed(0) : num.toFixed(2)}`;
 }
 
+function TypeFilterStrip({
+  types,
+  active,
+  onToggle,
+}: {
+  types: string[];
+  active: string | null;
+  onToggle: (type: string | null) => void;
+}) {
+  if (types.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2 px-4 py-3 sm:px-6 border-b border-border">
+      {types.map((type) => {
+        const isActive = active === type;
+        return (
+          <button
+            key={type}
+            onClick={() => onToggle(isActive ? null : type)}
+            className={`px-4 py-1.5 text-[10px] font-display tracking-[0.15em] uppercase transition-all border ${
+              isActive
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+            }`}
+          >
+            {TYPE_LABELS[type] || type}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function EventCard({ event }: { event: PadelEvent }) {
   const priceLabel = formatPrice(event.price);
+  const typeLabel = TYPE_LABELS[event.booking_type];
+  const typeColor = TYPE_COLORS[event.booking_type] || "bg-muted text-muted-foreground";
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-border px-4 py-5 sm:px-6 last:border-b-0">
@@ -156,9 +205,16 @@ function EventCard({ event }: { event: PadelEvent }) {
         <h4 className="font-display text-lg tracking-wide text-foreground truncate">
           {event.title}
         </h4>
-        {event.court && (
-          <p className="text-xs text-muted-foreground">{event.court}</p>
-        )}
+        <div className="mt-1 flex items-center gap-2">
+          {event.court && (
+            <span className="text-xs text-muted-foreground">{event.court}</span>
+          )}
+          {typeLabel && (
+            <span className={`inline-block px-2 py-0.5 text-[10px] font-display tracking-wider uppercase ${typeColor}`}>
+              {typeLabel}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-4 sm:gap-6 shrink-0">
@@ -194,6 +250,7 @@ export default function EventsModal({ children }: EventsModalProps) {
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(today);
   const [weekStart, setWeekStart] = useState(today);
+  const [activeType, setActiveType] = useState<string | null>(null);
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
 
@@ -203,6 +260,12 @@ export default function EventsModal({ children }: EventsModalProps) {
     enabled: open,
     staleTime: 60_000,
   });
+
+  const availableTypes = [...new Set(events.map((e) => e.booking_type))];
+
+  const filtered = activeType
+    ? events.filter((e) => e.booking_type === activeType)
+    : events;
 
   const handleShift = (dir: -1 | 1) => {
     setWeekStart((prev) => addDays(prev, dir * VISIBLE_DAYS));
@@ -228,13 +291,21 @@ export default function EventsModal({ children }: EventsModalProps) {
           onShift={handleShift}
         />
 
+        {!isLoading && availableTypes.length > 1 && (
+          <TypeFilterStrip
+            types={availableTypes}
+            active={activeType}
+            onToggle={setActiveType}
+          />
+        )}
+
         <div className="flex-1 overflow-y-auto min-h-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          ) : events.length > 0 ? (
-            events.map((event) => (
+          ) : filtered.length > 0 ? (
+            filtered.map((event) => (
               <EventCard key={event.id} event={event} />
             ))
           ) : (
@@ -243,7 +314,9 @@ export default function EventsModal({ children }: EventsModalProps) {
                 NO EVENTS
               </p>
               <p className="mt-2 text-sm text-muted-foreground/70">
-                Nothing scheduled for this day. Try another date.
+                {activeType
+                  ? "No events of this type on this day. Try clearing the filter or picking another date."
+                  : "Nothing scheduled for this day. Try another date."}
               </p>
             </div>
           )}
