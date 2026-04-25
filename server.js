@@ -180,6 +180,12 @@ async function fetchPlaytomicBookings() {
   console.log("[playtomic] Cached %d academy bookings (of %d total)",
     academyBookings.length, bookings.length);
 
+  if (academyBookings.length > 0) {
+    const sample = academyBookings[0];
+    console.log("[playtomic] Sample booking keys: %s", Object.keys(sample).join(", "));
+    console.log("[playtomic] Sample booking: %s", JSON.stringify(sample, null, 2));
+  }
+
   return academyBookings;
 }
 
@@ -223,6 +229,9 @@ function mapBookingToEvent(booking) {
     BOOKING_TYPE_LABELS[booking.booking_type] ||
     booking.booking_type;
 
+  const participants = booking.participant_info?.participants ?? [];
+  const signedUp = participants.length;
+
   return {
     id: booking.booking_id,
     title,
@@ -233,6 +242,7 @@ function mapBookingToEvent(booking) {
     price: booking.price || null,
     booking_type: booking.booking_type,
     court: booking.resource_name || null,
+    signed_up: signedUp,
   };
 }
 

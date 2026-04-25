@@ -26,6 +26,7 @@ interface PadelEvent {
   price: string | null;
   booking_type: string;
   court: string | null;
+  signed_up: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -218,11 +219,18 @@ function EventCard({ event }: { event: PadelEvent }) {
       </div>
 
       <div className="flex items-center gap-4 sm:gap-6 shrink-0">
-        {priceLabel && (
-          <span className="hidden sm:inline text-sm font-medium text-emerald-400">
-            {priceLabel}
-          </span>
-        )}
+        <div className="hidden sm:flex flex-col items-end gap-1">
+          {event.signed_up > 0 && (
+            <span className="text-xs font-medium text-muted-foreground">
+              {event.signed_up} signed up
+            </span>
+          )}
+          {priceLabel && (
+            <span className="text-sm font-medium text-emerald-400">
+              {priceLabel}
+            </span>
+          )}
+        </div>
 
         <a
           href={PLAYTOMIC_TENANT_URL}
