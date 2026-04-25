@@ -91,25 +91,27 @@ const Memberships = () => {
 
       {/* All Members Receive */}
       <section className="py-12 px-6">
-        <div className="mx-auto max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="border border-primary bg-secondary/50 p-8"
-          >
-            <h2 className="font-display text-2xl sm:text-3xl text-foreground mb-6 text-center">ALL MEMBERS RECEIVE</h2>
-            <ul className="space-y-3">
-              {sharedBenefits.map((benefit) => (
-                <li key={benefit} className="flex items-start gap-3">
-                  <Star size={14} className="text-primary mt-0.5 shrink-0 fill-primary" />
-                  <span className="font-body text-sm text-secondary-foreground">{benefit}</span>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mx-auto max-w-5xl text-center"
+        >
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="h-px w-12 bg-primary" />
+            <h2 className="font-display text-2xl sm:text-3xl text-foreground">ALL MEMBERS RECEIVE</h2>
+            <div className="h-px w-12 bg-primary" />
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 max-w-3xl mx-auto">
+            {sharedBenefits.map((benefit) => (
+              <div key={benefit} className="flex items-center gap-2 justify-center">
+                <Star size={12} className="text-primary shrink-0 fill-primary" />
+                <span className="font-body text-sm text-secondary-foreground">{benefit}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </section>
 
       {/* Tiers */}
