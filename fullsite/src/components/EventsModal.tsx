@@ -141,14 +141,6 @@ function formatTime(t: string) {
   return `${hour12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${period}`;
 }
 
-function formatPrice(price: string | null) {
-  if (!price) return null;
-  const [amount, currency] = price.split(" ");
-  const num = parseFloat(amount);
-  if (isNaN(num) || num === 0) return null;
-  const symbol = currency === "EUR" ? "€" : currency === "GBP" ? "£" : "$";
-  return `${symbol}${num % 1 === 0 ? num.toFixed(0) : num.toFixed(2)}`;
-}
 
 function TypeFilterStrip({
   types,
@@ -184,7 +176,6 @@ function TypeFilterStrip({
 }
 
 function EventCard({ event }: { event: PadelEvent }) {
-  const priceLabel = formatPrice(event.price);
   const typeLabel = TYPE_LABELS[event.booking_type];
   const typeColor = TYPE_COLORS[event.booking_type] || "bg-muted text-muted-foreground";
 
@@ -219,18 +210,11 @@ function EventCard({ event }: { event: PadelEvent }) {
       </div>
 
       <div className="flex items-center gap-4 sm:gap-6 shrink-0">
-        <div className="hidden sm:flex flex-col items-end gap-1">
-          {event.signed_up > 0 && (
-            <span className="text-xs font-medium text-muted-foreground">
-              {event.signed_up} signed up
-            </span>
-          )}
-          {priceLabel && (
-            <span className="text-sm font-medium text-emerald-400">
-              {priceLabel}
-            </span>
-          )}
-        </div>
+        {event.signed_up > 0 && (
+          <span className="hidden sm:inline text-xs font-medium text-muted-foreground">
+            {event.signed_up} signed up
+          </span>
+        )}
 
         <a
           href={PLAYTOMIC_TENANT_URL}

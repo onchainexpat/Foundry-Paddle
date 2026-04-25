@@ -180,10 +180,17 @@ async function fetchPlaytomicBookings() {
   console.log("[playtomic] Cached %d academy bookings (of %d total)",
     academyBookings.length, bookings.length);
 
-  if (academyBookings.length > 0) {
-    const sample = academyBookings[0];
-    console.log("[playtomic] Sample booking keys: %s", Object.keys(sample).join(", "));
-    console.log("[playtomic] Sample booking: %s", JSON.stringify(sample, null, 2));
+  for (const b of academyBookings) {
+    console.log("[playtomic] booking: type=%s title=%s activity_name=%s course_name=%s price=%s participants=%d court=%s activity_id=%s",
+      b.booking_type,
+      b.activity_name || b.course_name || "(none)",
+      b.activity_name,
+      b.course_name,
+      b.price,
+      b.participant_info?.participants?.length ?? 0,
+      b.resource_name,
+      b.activity_id,
+    );
   }
 
   return academyBookings;
