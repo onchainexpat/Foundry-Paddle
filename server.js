@@ -3,7 +3,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 import { z } from "zod";
-import { neon } from "@neondatabase/serverless";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.join(__dirname, "dist");
@@ -72,247 +71,203 @@ app.post("/api/register-interest", async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Database
+// Playtomic API integration (replaces Neon-backed events)
 // ---------------------------------------------------------------------------
 
-const DATABASE_URL = process.env.DATABASE_URL;
-const sql = DATABASE_URL ? neon(DATABASE_URL) : null;
+const PLAYTOMIC_CLIENT_ID = process.env.PLAYTOMIC_CLIENT_ID;
+const PLAYTOMIC_CLIENT_SECRET = process.env.PLAYTOMIC_CLIENT_SECRET;
+const PLAYTOMIC_TENANT_ID =
+  process.env.PLAYTOMIC_TENANT_ID || "70cae734-e32f-4e3a-9f72-516d9f025125";
 
-function requireDb(req, res, next) {
-  if (!sql) {
-    console.error("[events] DATABASE_URL not configured");
-    return res.status(503).json({ error: "Database not configured." });
+const ACADEMY_BOOKING_TYPES = new Set([
+  "COURSE_CLASS",
+  "PUBLIC_CLASS",
+  "PRIVATE_CLASS",
+  "TOURNAMENT",
+]);
+
+const BOOKING_TYPE_LABELS = {
+  COURSE_CLASS: "Course",
+  PUBLIC_CLASS: "Clinic",
+  PRIVATE_CLASS: "Private Class",
+  TOURNAMENT: "Tournament",
+};
+
+let tokenCache = { accessToken: null, expiresAt: 0 };
+
+async function getPlaytomicToken() {
+  if (tokenCache.accessToken && Date.now() < tokenCache.expiresAt) {
+    return tokenCache.accessToken;
   }
-  next();
+
+  const res = await fetch("https://api.playtomic.io/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: PLAYTOMIC_CLIENT_ID,
+      client_secret: PLAYTOMIC_CLIENT_SECRET,
+      grant_type: "client_credentials",
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("[playtomic] Token request failed", {
+      status: res.status,
+      bodyPreview: body.slice(0, 300),
+    });
+    throw new Error(`Playtomic token request failed (${res.status})`);
+  }
+
+  const data = await res.json();
+  const bufferMs = 5 * 60 * 1000;
+  tokenCache = {
+    accessToken: data.access_token,
+    expiresAt: Date.now() + (data.expires_in || 3600) * 1000 - bufferMs,
+  };
+
+  console.log("[playtomic] Token refreshed, expires in ~%d min",
+    Math.round(((data.expires_in || 3600) - 300) / 60));
+
+  return tokenCache.accessToken;
+}
+
+const BOOKINGS_CACHE_TTL = 5 * 60 * 1000;
+let bookingsCache = { data: [], fetchedAt: 0 };
+
+async function fetchPlaytomicBookings() {
+  if (bookingsCache.data.length && Date.now() - bookingsCache.fetchedAt < BOOKINGS_CACHE_TTL) {
+    return bookingsCache.data;
+  }
+
+  const token = await getPlaytomicToken();
+
+  const now = new Date();
+  const start = now.toISOString().slice(0, 19);
+  const end = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 19);
+
+  const url = new URL("https://thirdparty.playtomic.io/api/v1/bookings");
+  url.searchParams.set("tenant_id", PLAYTOMIC_TENANT_ID);
+  url.searchParams.set("start_booking_date", start);
+  url.searchParams.set("end_booking_date", end);
+  url.searchParams.set("size", "200");
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("[playtomic] Bookings fetch failed", {
+      status: res.status,
+      bodyPreview: body.slice(0, 300),
+    });
+    throw new Error(`Playtomic bookings request failed (${res.status})`);
+  }
+
+  const bookings = await res.json();
+
+  const academyBookings = bookings.filter(
+    (b) => ACADEMY_BOOKING_TYPES.has(b.booking_type) && !b.is_canceled,
+  );
+
+  bookingsCache = { data: academyBookings, fetchedAt: Date.now() };
+
+  console.log("[playtomic] Cached %d academy bookings (of %d total)",
+    academyBookings.length, bookings.length);
+
+  return academyBookings;
+}
+
+const CLUB_TIMEZONE = process.env.CLUB_TIMEZONE || "America/Los_Angeles";
+
+function toLocalParts(utcDate, tz) {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(utcDate).map((p) => [p.type, p.value]),
+  );
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${parts.hour}:${parts.minute}`,
+  };
+}
+
+function mapBookingToEvent(booking) {
+  const startUtc = new Date(booking.booking_start_date + "Z");
+  const endUtc = new Date(booking.booking_end_date + "Z");
+
+  const startLocal = toLocalParts(startUtc, CLUB_TIMEZONE);
+  const endLocal = toLocalParts(endUtc, CLUB_TIMEZONE);
+
+  const date = startLocal.date;
+  const startTime = startLocal.time;
+  const endTime = endLocal.time;
+
+  const durationMin = Math.round((endUtc - startUtc) / 60000);
+
+  const title =
+    booking.activity_name ||
+    booking.course_name ||
+    BOOKING_TYPE_LABELS[booking.booking_type] ||
+    booking.booking_type;
+
+  return {
+    id: booking.booking_id,
+    title,
+    date,
+    start_time: startTime,
+    end_time: endTime,
+    duration_min: durationMin,
+    price: booking.price || null,
+    booking_type: booking.booking_type,
+    court: booking.resource_name || null,
+  };
 }
 
 // ---------------------------------------------------------------------------
-// Public events API
+// Public events API (backed by Playtomic)
 // ---------------------------------------------------------------------------
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
-app.get("/api/events", requireDb, async (req, res) => {
+app.get("/api/events", async (req, res) => {
+  if (!PLAYTOMIC_CLIENT_ID || !PLAYTOMIC_CLIENT_SECRET) {
+    console.error("[events] PLAYTOMIC_CLIENT_ID / PLAYTOMIC_CLIENT_SECRET not configured");
+    return res.status(503).json({ error: "Events not configured." });
+  }
+
   const { date } = req.query;
   if (!date || !DATE_REGEX.test(date)) {
     return res.status(400).json({ error: "Query param 'date' required (YYYY-MM-DD)." });
   }
 
   try {
-    const rows = await sql`
-      SELECT id, title, date::text, start_time::text, end_time::text, duration_min, spots_left, total_spots
-      FROM events
-      WHERE date = ${date}
-      ORDER BY start_time ASC
-    `;
-    return res.json(rows);
+    const bookings = await fetchPlaytomicBookings();
+
+    const events = bookings
+      .map(mapBookingToEvent)
+      .filter((e) => e.date === date)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+    return res.json(events);
   } catch (error) {
-    console.error("[events] Query failed", { message: error instanceof Error ? error.message : error });
-    return res.status(500).json({ error: "Internal server error." });
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Admin auth
-// ---------------------------------------------------------------------------
-
-function requireAdmin(req, res, next) {
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (!adminPassword) {
-    return res.status(503).json({ error: "Admin not configured." });
-  }
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token || token !== adminPassword) {
-    return res.status(401).json({ error: "Unauthorized." });
-  }
-  next();
-}
-
-// ---------------------------------------------------------------------------
-// Admin events CRUD
-// ---------------------------------------------------------------------------
-
-const eventSchema = z.object({
-  title: z.string().trim().min(1).max(500),
-  date: z.string().regex(DATE_REGEX, "Must be YYYY-MM-DD"),
-  start_time: z.string().regex(/^\d{2}:\d{2}$/, "Must be HH:MM"),
-  end_time: z.string().regex(/^\d{2}:\d{2}$/, "Must be HH:MM"),
-  duration_min: z.number().int().min(1).max(1440),
-  spots_left: z.number().int().min(0).default(0),
-  total_spots: z.number().int().min(0).default(0),
-});
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-app.get("/api/admin/events", requireDb, requireAdmin, async (_req, res) => {
-  try {
-    const rows = await sql`
-      SELECT e.id, e.title, e.date::text, e.start_time::text, e.end_time::text,
-             e.duration_min, e.spots_left, e.total_spots, e.created_at, e.updated_at,
-             COALESCE(s.signup_count, 0)::int AS signup_count
-      FROM events e
-      LEFT JOIN (
-        SELECT event_id, COUNT(*)::int AS signup_count
-        FROM event_signups
-        GROUP BY event_id
-      ) s ON s.event_id = e.id
-      ORDER BY e.date ASC, e.start_time ASC
-    `;
-    return res.json(rows);
-  } catch (error) {
-    console.error("[admin/events] List failed", { message: error instanceof Error ? error.message : error });
-    return res.status(500).json({ error: "Internal server error." });
-  }
-});
-
-app.post("/api/admin/events", requireDb, requireAdmin, async (req, res) => {
-  const parsed = eventSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Validation failed.", issues: parsed.error.issues });
-  }
-  const d = parsed.data;
-
-  try {
-    const rows = await sql`
-      INSERT INTO events (title, date, start_time, end_time, duration_min, spots_left, total_spots)
-      VALUES (${d.title}, ${d.date}, ${d.start_time}, ${d.end_time}, ${d.duration_min}, ${d.spots_left}, ${d.total_spots})
-      RETURNING id, title, date::text, start_time::text, end_time::text, duration_min, spots_left, total_spots, created_at, updated_at
-    `;
-    return res.status(201).json(rows[0]);
-  } catch (error) {
-    console.error("[admin/events] Create failed", { message: error instanceof Error ? error.message : error });
-    return res.status(500).json({ error: "Internal server error." });
-  }
-});
-
-app.put("/api/admin/events/:id", requireDb, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  if (!UUID_REGEX.test(id)) {
-    return res.status(400).json({ error: "Invalid event ID." });
-  }
-
-  const parsed = eventSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Validation failed.", issues: parsed.error.issues });
-  }
-  const d = parsed.data;
-
-  try {
-    const rows = await sql`
-      UPDATE events
-      SET title = ${d.title}, date = ${d.date}, start_time = ${d.start_time}, end_time = ${d.end_time},
-          duration_min = ${d.duration_min}, spots_left = ${d.spots_left}, total_spots = ${d.total_spots},
-          updated_at = now()
-      WHERE id = ${id}
-      RETURNING id, title, date::text, start_time::text, end_time::text, duration_min, spots_left, total_spots, created_at, updated_at
-    `;
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "Event not found." });
-    }
-    return res.json(rows[0]);
-  } catch (error) {
-    console.error("[admin/events] Update failed", { message: error instanceof Error ? error.message : error });
-    return res.status(500).json({ error: "Internal server error." });
-  }
-});
-
-app.delete("/api/admin/events/:id", requireDb, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  if (!UUID_REGEX.test(id)) {
-    return res.status(400).json({ error: "Invalid event ID." });
-  }
-
-  try {
-    const rows = await sql`
-      DELETE FROM events WHERE id = ${id} RETURNING id
-    `;
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "Event not found." });
-    }
-    return res.json({ ok: true });
-  } catch (error) {
-    console.error("[admin/events] Delete failed", { message: error instanceof Error ? error.message : error });
-    return res.status(500).json({ error: "Internal server error." });
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Public signup endpoint
-// ---------------------------------------------------------------------------
-
-const signupSchema = z.object({
-  name: z.string().trim().min(1).max(100),
-  email: z.string().trim().email().max(255),
-  mobile: z.preprocess(
-    (v) => {
-      if (v === undefined || v === null) return undefined;
-      if (typeof v === "string" && v.trim() === "") return undefined;
-      return v;
-    },
-    z.string().regex(E164_MOBILE_REGEX).optional(),
-  ),
-});
-
-app.post("/api/events/:id/signup", requireDb, async (req, res) => {
-  const { id } = req.params;
-  if (!UUID_REGEX.test(id)) {
-    return res.status(400).json({ error: "Invalid event ID." });
-  }
-
-  const parsed = signupSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Validation failed.", issues: parsed.error.issues });
-  }
-  const { name, email, mobile } = parsed.data;
-
-  try {
-    const events = await sql`
-      SELECT id, spots_left FROM events WHERE id = ${id}
-    `;
-    if (events.length === 0) {
-      return res.status(404).json({ error: "Event not found." });
-    }
-    if (events[0].spots_left <= 0) {
-      return res.status(409).json({ error: "No spots left for this event." });
-    }
-
-    await sql`
-      INSERT INTO event_signups (event_id, name, email, mobile)
-      VALUES (${id}, ${name}, ${email}, ${mobile ?? null})
-    `;
-
-    await sql`
-      UPDATE events SET spots_left = spots_left - 1 WHERE id = ${id} AND spots_left > 0
-    `;
-
-    return res.status(201).json({ ok: true });
-  } catch (error) {
-    console.error("[signup] Failed", { message: error instanceof Error ? error.message : error });
-    return res.status(500).json({ error: "Internal server error." });
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Admin signups endpoint
-// ---------------------------------------------------------------------------
-
-app.get("/api/admin/events/:id/signups", requireDb, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  if (!UUID_REGEX.test(id)) {
-    return res.status(400).json({ error: "Invalid event ID." });
-  }
-
-  try {
-    const rows = await sql`
-      SELECT id, name, email, mobile, created_at
-      FROM event_signups
-      WHERE event_id = ${id}
-      ORDER BY created_at ASC
-    `;
-    return res.json(rows);
-  } catch (error) {
-    console.error("[admin/signups] Query failed", { message: error instanceof Error ? error.message : error });
-    return res.status(500).json({ error: "Internal server error." });
+    console.error("[events] Playtomic fetch failed", {
+      message: error instanceof Error ? error.message : error,
+    });
+    return res.status(502).json({ error: "Failed to fetch events from Playtomic." });
   }
 });
 

@@ -8,8 +8,8 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, Clock, Loader2 } from "lucide-react";
-import EventSignupForm from "./EventSignupForm";
+import { ChevronLeft, ChevronRight, Clock, Loader2, ExternalLink } from "lucide-react";
+import { PLAYTOMIC_TENANT_URL } from "@/constants/booking";
 import { addDays, format, isSameDay, startOfDay } from "date-fns";
 
 // ---------------------------------------------------------------------------
@@ -23,8 +23,9 @@ interface PadelEvent {
   start_time: string;
   end_time: string;
   duration_min: number;
-  spots_left: number;
-  total_spots: number;
+  price: string | null;
+  booking_type: string;
+  court: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,36 +126,17 @@ function formatTime(t: string) {
   return `${hour12.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")} ${period}`;
 }
 
-function SpotsIndicator({
-  spotsLeft,
-  totalSpots,
-}: {
-  spotsLeft: number;
-  totalSpots: number;
-}) {
-  const pct = totalSpots > 0 ? (spotsLeft / totalSpots) * 100 : 0;
-  const isFull = spotsLeft === 0;
-
-  return (
-    <div className="flex flex-col items-end gap-1">
-      <span
-        className={`text-xs font-medium ${isFull ? "text-muted-foreground" : "text-emerald-400"}`}
-      >
-        {isFull ? "0 spots left" : `${spotsLeft} spots left`}
-      </span>
-      <div className="h-1.5 w-16 overflow-hidden bg-secondary">
-        <div
-          className={`h-full transition-all ${isFull ? "bg-muted-foreground" : "bg-emerald-400"}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
+function formatPrice(price: string | null) {
+  if (!price) return null;
+  const [amount, currency] = price.split(" ");
+  const num = parseFloat(amount);
+  if (isNaN(num) || num === 0) return null;
+  const symbol = currency === "EUR" ? "€" : currency === "GBP" ? "£" : "$";
+  return `${symbol}${num % 1 === 0 ? num.toFixed(0) : num.toFixed(2)}`;
 }
 
 function EventCard({ event }: { event: PadelEvent }) {
-  const [signupOpen, setSignupOpen] = useState(false);
-  const isFull = event.spots_left <= 0;
+  const priceLabel = formatPrice(event.price);
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-border px-4 py-5 sm:px-6 last:border-b-0">
@@ -174,44 +156,27 @@ function EventCard({ event }: { event: PadelEvent }) {
         <h4 className="font-display text-lg tracking-wide text-foreground truncate">
           {event.title}
         </h4>
+        {event.court && (
+          <p className="text-xs text-muted-foreground">{event.court}</p>
+        )}
       </div>
 
       <div className="flex items-center gap-4 sm:gap-6 shrink-0">
-        <div className="hidden sm:flex flex-col items-end">
-          <SpotsIndicator
-            spotsLeft={event.spots_left}
-            totalSpots={event.total_spots}
-          />
-        </div>
+        {priceLabel && (
+          <span className="hidden sm:inline text-sm font-medium text-emerald-400">
+            {priceLabel}
+          </span>
+        )}
 
-        <Dialog open={signupOpen} onOpenChange={setSignupOpen}>
-          <button
-            onClick={() => !isFull && setSignupOpen(true)}
-            disabled={isFull}
-            className={`border px-5 py-2 text-xs font-display tracking-widest transition-all ${
-              isFull
-                ? "border-muted-foreground/30 text-muted-foreground cursor-not-allowed"
-                : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            }`}
-          >
-            {isFull ? "FULL" : "SIGN UP"}
-          </button>
-          <DialogContent className="max-w-sm z-[150]">
-            <DialogHeader>
-              <DialogTitle className="font-display text-xl tracking-widest">
-                SIGN UP
-              </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
-                {event.title}
-              </DialogDescription>
-            </DialogHeader>
-            <EventSignupForm
-              eventId={event.id}
-              eventTitle={event.title}
-              onSuccess={() => setSignupOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        <a
+          href={PLAYTOMIC_TENANT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 border border-primary px-5 py-2 text-xs font-display tracking-widest text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+        >
+          BOOK
+          <ExternalLink className="h-3 w-3" />
+        </a>
       </div>
     </div>
   );

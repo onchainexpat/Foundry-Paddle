@@ -12,7 +12,6 @@ import Memberships from "./pages/Memberships";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import Book from "./pages/Book";
-import Admin from "./pages/Admin";
 
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -27,7 +26,6 @@ const App = () => (
       <BrowserRouter>
         <ScrollToTop />
         <Routes>
-          <Route path="/admin" element={<Admin />} />
           <Route
             path="*"
             element={

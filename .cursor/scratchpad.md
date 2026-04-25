@@ -39,23 +39,35 @@ Update (2026-04-09): User now reports form submission failure with browser conso
 # Current Status / Progress Tracking
 
 - Executor implementation complete for backend relay migration (previous task).
-- **Event Signup Flow — COMPLETE (2026-04-23):**
-  - Created `event_signups` table in Neon DB with foreign key to events + index on event_id.
-  - Added `POST /api/events/:id/signup` public endpoint with Zod validation, spots check, insert + spots decrement.
-  - Added `GET /api/admin/events/:id/signups` admin endpoint (protected by requireAdmin middleware).
-  - Updated `GET /api/admin/events` to include `signup_count` via LEFT JOIN on event_signups.
-  - Created `EventSignupForm.tsx` — compact signup form with name/email/mobile fields, country code selector, honeypot + math captcha, localStorage persistence (key: `foundry_user`), React Query invalidation on success.
-  - Added SIGN UP / FULL button to EventCard in EventsModal.tsx, opening signup form in nested Dialog.
-  - Added clickable signups count column + detail dialog to Admin.tsx events table.
-  - End-to-end tested: signup from modal works, spots decrement correctly, admin signups view shows all signups with details, localStorage pre-fill works on subsequent form opens.
+- **Event Signup Flow — OUTDATED (replaced 2026-04-25):**
+  - ~~Created `event_signups` table in Neon DB~~ — removed, Neon no longer used for events.
+  - ~~EventSignupForm.tsx, Admin.tsx~~ — deleted.
+  - The entire Neon-backed events system has been replaced with Playtomic Third Party API integration.
+- **Playtomic Events Integration — COMPLETE (2026-04-25):**
+  - Replaced `GET /api/events` Express route: now calls Playtomic Third Party API instead of Neon.
+  - Added OAuth token fetch + cache (client_credentials flow, ~1hr token, 5-min buffer refresh).
+  - Added 30-day rolling bookings fetch with 5-min in-memory cache to respect 1 req/min rate limit.
+  - Filters for Academy booking types: COURSE_CLASS, PUBLIC_CLASS, PRIVATE_CLASS, TOURNAMENT.
+  - Maps Playtomic bookings to PadelEvent shape with UTC → local timezone conversion (America/Los_Angeles).
+  - Updated EventsModal.tsx: removed signup form/dialog, replaced "SIGN UP" with "BOOK" link to Playtomic app, added price display and court name.
+  - Deleted: EventSignupForm.tsx, Admin.tsx, /admin route, all Neon imports/routes/schemas.
+  - Removed `@neondatabase/serverless` from package.json.
 
 # Executor's Feedback or Assistance Requests
 
-Manual verification requested:
-- Submit the form on production/staging and confirm success toast appears.
-- In browser DevTools Network tab, verify request target is same-origin `/api/register-interest` (not `hook.eu1.make.com`).
-- Update Railway env var `MAKE_INTEREST_WEBHOOK_URL` to a valid active Make webhook (current hardcoded URL returns `410 Webhook not found`).
-- If submission still fails after env update, share backend logs from Railway for `[register-interest]` entries to diagnose quickly.
+**Railway env vars needed for Playtomic integration:**
+- `PLAYTOMIC_CLIENT_ID` — from Playtomic Manager > Settings > Developer Tools
+- `PLAYTOMIC_CLIENT_SECRET` — from Playtomic Manager > Settings > Developer Tools
+- `PLAYTOMIC_TENANT_ID` — optional, defaults to `70cae734-e32f-4e3a-9f72-516d9f025125`
+- `CLUB_TIMEZONE` — optional, defaults to `America/Los_Angeles`
+
+**Railway env vars that can be removed:**
+- `DATABASE_URL` — Neon is no longer used by any route
+- `ADMIN_PASSWORD` — admin panel has been removed
+
+**Neon cleanup (manual):**
+- Drop `event_signups` table, then `events` table from Neon DB
+- If no other tables remain, the Neon project can be decommissioned
 
 # Lessons
 
@@ -66,3 +78,6 @@ Manual verification requested:
 - For third-party webhook integrations from frontend, avoid direct browser calls; use same-origin backend relay to bypass CORS and centralize validation/logging.
 - Neon serverless driver converts DATE and TIME columns to JS Date objects which causes timezone drift when serialized to JSON. Use `::text` cast in SQL SELECT queries to get plain string values (`YYYY-MM-DD`, `HH:MM:SS`).
 - When running Vite dev server alongside Express backend, add a `proxy` entry in `vite.config.ts` for `/api` routes to forward to the backend port.
+- Playtomic Third Party API base URL is `thirdparty.playtomic.io` (not `api.playtomic.io`); however the OAuth token endpoint IS at `api.playtomic.io/oauth/token`.
+- Playtomic API rate limit is 1 req/min — must cache server-side. A 5-min TTL on a 30-day rolling window fetch is a safe strategy.
+- Playtomic booking dates are UTC; use `Intl.DateTimeFormat` with the club's timezone to convert to local date/time for display.
