@@ -191,6 +191,8 @@ async function fetchPlaytomicBookings() {
       b.resource_name,
       b.activity_id,
     );
+    console.log("[playtomic] FULL BOOKING KEYS: %s", Object.keys(b).join(", "));
+    console.log("[playtomic] RAW BOOKING: %s", JSON.stringify(b, null, 2));
   }
 
   return academyBookings;

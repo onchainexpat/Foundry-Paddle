@@ -1,35 +1,78 @@
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Star } from "lucide-react";
 import BookCTA from "@/components/BookCTA";
 import StayInTouchForm from "@/components/StayInTouchForm";
 
+const sharedBenefits = [
+  "All-Hours Access to Sky Level lounge and observation deck",
+  "Special Members Only events",
+  "10% Discount on In-Store Merchandise",
+  "Free Stuff — when we get free stuff, you get free stuff!",
+  "Membership benefits at clubs opening in the Pacific Northwest",
+];
+
 const tiers = [
   {
-    name: "DROP-IN",
-    price: "Coming Soon",
-    desc: "Pay as you play. No commitment.",
-    features: ["Court booking access", "Equipment rental available", "Café discounts", "Open play sessions"],
+    name: "STUDENT / LONGEVITY",
+    label: "Retired",
+    price: "$99",
+    period: "/mo",
+    value: "$285+",
+    desc: "Discounted access for students and retirees.",
+    features: [
+      "Up to 5 hours/week free court time during non-peak hours (incl. organized games)",
+      "50% discount filling in last-minute open matches within 3 hours (incl. peak)",
+      "2 Free 'New Guest' passes/month or 1 off-peak 90-min full court",
+      "50% discount on padel rentals",
+      "25% discount on pro lessons",
+      "Free Foundry Padel T-shirt",
+      "4-day booking window",
+    ],
     highlight: false,
   },
   {
-    name: "MEMBER",
-    price: "Coming Soon",
+    name: "REGULAR",
+    label: null,
+    price: "$149",
+    period: "/mo",
+    value: "$265+",
     desc: "For regulars who want priority and perks.",
-    features: ["Priority court booking", "Discounted court rates", "Free equipment rental", "Member social events", "Guest passes (2/month)", "Coaching discounts"],
-    highlight: true,
+    features: [
+      "5 hours/week free court time during non-peak hours (incl. organized games)",
+      "4.5 hours/week half-price court time during peak hours (incl. organized games)",
+      "2 Free 'New Guest' passes/month or 1 off-peak 90-min full court",
+      "25% discount on pro lessons",
+      "50% discount on padel rentals",
+      "Free Foundry Padel T-shirt",
+      "7-day booking window",
+    ],
+    highlight: false,
   },
   {
-    name: "UNLIMITED",
-    price: "Coming Soon",
-    desc: "All-in. Unlimited play, unlimited access.",
-    features: ["Unlimited court time", "All Member benefits", "Free coaching clinics", "Tournament entry included", "Unlimited guest passes", "Pro shop discounts", "Locker included"],
-    highlight: false,
+    name: "PADELHEAD",
+    label: null,
+    price: "$199",
+    period: "/mo",
+    value: "$365+",
+    desc: "All-in. Unlimited play, maximum perks.",
+    features: [
+      "Unlimited free court time during non-peak hours (incl. organized games)",
+      "3 hours/week free court time during peak hours (incl. organized games)",
+      "50% discount filling in last-minute open matches within 5 hours (incl. peak)",
+      "2 Free 'New Guest' passes/month or 1 off-peak 90-min full court session",
+      "25% discount on pro lessons",
+      "50% discount on padel rentals",
+      "Free Foundry Padel T-shirt",
+      "14-day booking window",
+    ],
+    highlight: true,
   },
 ];
 
 const Memberships = () => {
   return (
     <main className="bg-background min-h-screen pt-24">
+      {/* Hero */}
       <section className="py-20 px-6">
         <div className="mx-auto max-w-4xl text-center">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
@@ -40,9 +83,31 @@ const Memberships = () => {
               <div className="h-px w-16 bg-primary" />
             </div>
             <p className="font-body text-base text-secondary-foreground max-w-xl mx-auto">
-              From casual drop-ins to committed players — there's a tier for every game.
-              Pricing announced at launch.
+              From casual play to unlimited access — find the membership that fits your game.
             </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* All Members Receive */}
+      <section className="py-12 px-6">
+        <div className="mx-auto max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="border border-primary bg-secondary/50 p-8"
+          >
+            <h2 className="font-display text-2xl sm:text-3xl text-foreground mb-6 text-center">ALL MEMBERS RECEIVE</h2>
+            <ul className="space-y-3">
+              {sharedBenefits.map((benefit) => (
+                <li key={benefit} className="flex items-start gap-3">
+                  <Star size={14} className="text-primary mt-0.5 shrink-0 fill-primary" />
+                  <span className="font-body text-sm text-secondary-foreground">{benefit}</span>
+                </li>
+              ))}
+            </ul>
           </motion.div>
         </div>
       </section>
@@ -62,11 +127,20 @@ const Memberships = () => {
               }`}
             >
               {tier.highlight && (
-                <span className="font-body text-xs tracking-[0.2em] uppercase text-primary mb-4">Most Popular</span>
+                <span className="font-body text-xs tracking-[0.2em] uppercase text-primary mb-4">Best Value</span>
               )}
               <h3 className="font-display text-3xl text-foreground mb-1">{tier.name}</h3>
-              <span className="font-display text-xl text-primary mb-3">{tier.price}</span>
-              <p className="font-body text-sm text-muted-foreground mb-6">{tier.desc}</p>
+              {tier.label && (
+                <span className="font-body text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2">{tier.label}</span>
+              )}
+              <div className="mb-3">
+                <span className="font-display text-4xl text-primary">{tier.price}</span>
+                <span className="font-body text-sm text-muted-foreground">{tier.period}</span>
+              </div>
+              <p className="font-body text-sm text-muted-foreground mb-4">{tier.desc}</p>
+              <div className="font-body text-xs tracking-[0.1em] uppercase text-primary/80 mb-6">
+                Value: {tier.value}
+              </div>
               <ul className="space-y-3 flex-1">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
@@ -78,6 +152,23 @@ const Memberships = () => {
             </motion.div>
           ))}
         </div>
+      </section>
+
+      {/* Initiation Fee Note */}
+      <section className="py-16 px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mx-auto max-w-3xl text-center"
+        >
+          <h2 className="font-display text-3xl sm:text-4xl text-foreground mb-4">NO INITIATION FEE</h2>
+          <p className="font-body text-base text-secondary-foreground max-w-lg mx-auto">
+            We ask for a 12-month commitment but are not charging an initiation fee during our first year.
+            Due at signing is first and 12th month fees.
+          </p>
+        </motion.div>
       </section>
 
       <BookCTA />

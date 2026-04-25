@@ -52,6 +52,13 @@ Update (2026-04-09): User now reports form submission failure with browser conso
   - Updated EventsModal.tsx: removed signup form/dialog, replaced "SIGN UP" with "BOOK" link to Playtomic app, added price display and court name.
   - Deleted: EventSignupForm.tsx, Admin.tsx, /admin route, all Neon imports/routes/schemas.
   - Removed `@neondatabase/serverless` from package.json.
+- **Memberships Page Update — COMPLETE (2026-04-25):**
+  - Replaced placeholder "Coming Soon" tiers with real pricing: Student/Longevity ($99/mo), Regular ($149/mo), Padelhead ($199/mo).
+  - Added "All Members Receive" shared benefits section above tier cards.
+  - Added "No Initiation Fee" note section below tier cards.
+  - Added value callouts per card (e.g. "Value: $285+").
+  - Updated hero copy to remove "Pricing announced at launch."
+  - Padelhead tier highlighted as "Best Value".
 
 # Executor's Feedback or Assistance Requests
 
