@@ -20,6 +20,8 @@ const footerLinks: FooterNavLink[] = [
   { label: "FAQ", path: "/faq" },
   { label: "Contact", path: "/contact" },
   { label: "Book a Court", path: BOOK_PAGE_PATH },
+  { label: "Privacy Policy", path: "/privacy" },
+  { label: "SMS Terms", path: "/sms-terms" },
 ];
 
 const Footer = () => {

@@ -12,6 +12,8 @@ import Memberships from "./pages/Memberships";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import Book from "./pages/Book";
+import Privacy from "./pages/Privacy";
+import SmsTerms from "./pages/SmsTerms";
 
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -39,6 +41,9 @@ const App = () => (
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/book" element={<Book />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/sms-terms" element={<SmsTerms />} />
+                  <Route path="/terms" element={<SmsTerms />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 <Footer />
