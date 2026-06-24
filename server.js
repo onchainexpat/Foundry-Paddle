@@ -117,11 +117,14 @@ const PLAYTOMIC_CLIENT_SECRET = process.env.PLAYTOMIC_CLIENT_SECRET;
 const PLAYTOMIC_TENANT_ID =
   process.env.PLAYTOMIC_TENANT_ID || "70cae734-e32f-4e3a-9f72-516d9f025125";
 
-const ACADEMY_BOOKING_TYPES = new Set([
+// Playtomic booking types surfaced in the public Events widget. OPEN_MATCH is
+// open play; the rest are academy programming (clinics/courses/private/tournaments).
+const EVENT_BOOKING_TYPES = new Set([
   "COURSE_CLASS",
   "PUBLIC_CLASS",
   "PRIVATE_CLASS",
   "TOURNAMENT",
+  "OPEN_MATCH",
 ]);
 
 const BOOKING_TYPE_LABELS = {
@@ -129,6 +132,7 @@ const BOOKING_TYPE_LABELS = {
   PUBLIC_CLASS: "Clinic",
   PRIVATE_CLASS: "Private Class",
   TOURNAMENT: "Tournament",
+  OPEN_MATCH: "Open Play",
 };
 
 let tokenCache = { accessToken: null, expiresAt: 0 };
@@ -209,16 +213,16 @@ async function fetchPlaytomicBookings() {
 
   const bookings = await res.json();
 
-  const academyBookings = bookings.filter(
-    (b) => ACADEMY_BOOKING_TYPES.has(b.booking_type) && !b.is_canceled,
+  const eventBookings = bookings.filter(
+    (b) => EVENT_BOOKING_TYPES.has(b.booking_type) && !b.is_canceled,
   );
 
-  bookingsCache = { data: academyBookings, fetchedAt: Date.now() };
+  bookingsCache = { data: eventBookings, fetchedAt: Date.now() };
 
-  console.log("[playtomic] Cached %d academy bookings (of %d total)",
-    academyBookings.length, bookings.length);
+  console.log("[playtomic] Cached %d event bookings (of %d total)",
+    eventBookings.length, bookings.length);
 
-  for (const b of academyBookings) {
+  for (const b of eventBookings) {
     console.log("[playtomic] booking: type=%s title=%s activity_name=%s course_name=%s price=%s participants=%d court=%s activity_id=%s",
       b.booking_type,
       b.activity_name || b.course_name || "(none)",
@@ -233,7 +237,7 @@ async function fetchPlaytomicBookings() {
     console.log("[playtomic] RAW BOOKING: %s", JSON.stringify(b, null, 2));
   }
 
-  return academyBookings;
+  return eventBookings;
 }
 
 const CLUB_TIMEZONE = process.env.CLUB_TIMEZONE || "America/Los_Angeles";
