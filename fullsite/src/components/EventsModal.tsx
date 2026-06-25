@@ -51,6 +51,7 @@ const TYPE_LABELS: Record<string, string> = {
   PUBLIC_CLASS: "Clinic",
   PRIVATE_CLASS: "Private Class",
   TOURNAMENT: "Tournament",
+  OPEN_MATCH: "Open Play",
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -58,6 +59,7 @@ const TYPE_COLORS: Record<string, string> = {
   PUBLIC_CLASS: "bg-emerald-500/15 text-emerald-400",
   PRIVATE_CLASS: "bg-amber-500/15 text-amber-400",
   TOURNAMENT: "bg-violet-500/15 text-violet-400",
+  OPEN_MATCH: "bg-sky-500/15 text-sky-400",
 };
 
 // ---------------------------------------------------------------------------

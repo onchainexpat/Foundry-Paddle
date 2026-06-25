@@ -120,11 +120,14 @@ const PLAYTOMIC_CLIENT_SECRET = process.env.PLAYTOMIC_CLIENT_SECRET;
 const PLAYTOMIC_TENANT_ID =
   process.env.PLAYTOMIC_TENANT_ID || "70cae734-e32f-4e3a-9f72-516d9f025125";
 
-const ACADEMY_BOOKING_TYPES = new Set([
+// Playtomic booking types surfaced in the public Events widget. OPEN_MATCH is
+// open play; the rest are academy programming (clinics/courses/private/tournaments).
+const EVENT_BOOKING_TYPES = new Set([
   "COURSE_CLASS",
   "PUBLIC_CLASS",
   "PRIVATE_CLASS",
   "TOURNAMENT",
+  "OPEN_MATCH",
 ]);
 
 const BOOKING_TYPE_LABELS = {
@@ -132,6 +135,7 @@ const BOOKING_TYPE_LABELS = {
   PUBLIC_CLASS: "Clinic",
   PRIVATE_CLASS: "Private Class",
   TOURNAMENT: "Tournament",
+  OPEN_MATCH: "Open Play",
 };
 
 let tokenCache = { accessToken: null, expiresAt: 0 };
@@ -188,55 +192,53 @@ async function fetchPlaytomicBookings() {
     .toISOString()
     .slice(0, 19);
 
-  const url = new URL("https://thirdparty.playtomic.io/api/v1/bookings");
-  url.searchParams.set("tenant_id", PLAYTOMIC_TENANT_ID);
-  url.searchParams.set("start_booking_date", start);
-  url.searchParams.set("end_booking_date", end);
-  url.searchParams.set("size", "200");
+  // Playtomic caps each response at `size` rows and does NOT sort by date, so a
+  // single page can silently drop near-term events once the club has >200 bookings
+  // in the window. Page through all of them.
+  const PAGE_SIZE = 200;
+  const MAX_PAGES = 25;
+  const all = [];
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const url = new URL("https://thirdparty.playtomic.io/api/v1/bookings");
+    url.searchParams.set("tenant_id", PLAYTOMIC_TENANT_ID);
+    url.searchParams.set("start_booking_date", start);
+    url.searchParams.set("end_booking_date", end);
+    url.searchParams.set("size", String(PAGE_SIZE));
+    url.searchParams.set("page", String(page));
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    console.error("[playtomic] Bookings fetch failed", {
-      status: res.status,
-      bodyPreview: body.slice(0, 300),
+    const res = await fetch(url.toString(), {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
-    throw new Error(`Playtomic bookings request failed (${res.status})`);
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error("[playtomic] Bookings fetch failed", {
+        status: res.status,
+        page,
+        bodyPreview: body.slice(0, 300),
+      });
+      throw new Error(`Playtomic bookings request failed (${res.status})`);
+    }
+
+    const chunk = await res.json();
+    if (!Array.isArray(chunk) || chunk.length === 0) break;
+    all.push(...chunk);
+    if (chunk.length < PAGE_SIZE) break;
   }
 
-  const bookings = await res.json();
-
-  const academyBookings = bookings.filter(
-    (b) => ACADEMY_BOOKING_TYPES.has(b.booking_type) && !b.is_canceled,
+  const eventBookings = all.filter(
+    (b) => EVENT_BOOKING_TYPES.has(b.booking_type) && !b.is_canceled,
   );
 
-  bookingsCache = { data: academyBookings, fetchedAt: Date.now() };
+  bookingsCache = { data: eventBookings, fetchedAt: Date.now() };
 
-  console.log("[playtomic] Cached %d academy bookings (of %d total)",
-    academyBookings.length, bookings.length);
+  console.log("[playtomic] Cached %d event bookings (of %d total fetched)",
+    eventBookings.length, all.length);
 
-  for (const b of academyBookings) {
-    console.log("[playtomic] booking: type=%s title=%s activity_name=%s course_name=%s price=%s participants=%d court=%s activity_id=%s",
-      b.booking_type,
-      b.activity_name || b.course_name || "(none)",
-      b.activity_name,
-      b.course_name,
-      b.price,
-      b.participant_info?.participants?.length ?? 0,
-      b.resource_name,
-      b.activity_id,
-    );
-    console.log("[playtomic] FULL BOOKING KEYS: %s", Object.keys(b).join(", "));
-    console.log("[playtomic] RAW BOOKING: %s", JSON.stringify(b, null, 2));
-  }
-
-  return academyBookings;
+  return eventBookings;
 }
 
 const CLUB_TIMEZONE = process.env.CLUB_TIMEZONE || "America/Los_Angeles";
@@ -260,16 +262,29 @@ function toLocalParts(utcDate, tz) {
   };
 }
 
-function mapBookingToEvent(booking) {
+function groupEventBookings(bookings) {
+  // Multi-court activities (e.g. a tournament across 4 courts) arrive as one
+  // booking row per court, sharing an activity_id + start time. Group those into
+  // a single event. Open matches (and anything without an activity_id) stay
+  // separate, keyed by their own booking_id.
+  const groups = new Map();
+  for (const b of bookings) {
+    const key = b.activity_id
+      ? `act:${b.activity_id}:${b.booking_start_date}`
+      : `bk:${b.booking_id}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(b);
+  }
+  return [...groups.values()];
+}
+
+function mapBookingGroup(group) {
+  const booking = group[0];
   const startUtc = new Date(booking.booking_start_date + "Z");
   const endUtc = new Date(booking.booking_end_date + "Z");
 
   const startLocal = toLocalParts(startUtc, CLUB_TIMEZONE);
   const endLocal = toLocalParts(endUtc, CLUB_TIMEZONE);
-
-  const date = startLocal.date;
-  const startTime = startLocal.time;
-  const endTime = endLocal.time;
 
   const durationMin = Math.round((endUtc - startUtc) / 60000);
 
@@ -279,20 +294,30 @@ function mapBookingToEvent(booking) {
     BOOKING_TYPE_LABELS[booking.booking_type] ||
     booking.booking_type;
 
-  const participants = booking.participant_info?.participants ?? [];
-  const signedUp = participants.length;
+  const courts = [
+    ...new Set(group.map((g) => (g.resource_name || "").trim()).filter(Boolean)),
+  ].sort();
+
+  // Count distinct participants across the grouped court rows, deduped by id so a
+  // roster that repeats on every court row isn't multiplied.
+  const participantIds = new Set();
+  for (const g of group) {
+    for (const p of g.participant_info?.participants ?? []) {
+      participantIds.add(p.user_id || p.player_id || p.id || JSON.stringify(p));
+    }
+  }
 
   return {
-    id: booking.booking_id,
+    id: booking.activity_id || booking.booking_id,
     title,
-    date,
-    start_time: startTime,
-    end_time: endTime,
+    date: startLocal.date,
+    start_time: startLocal.time,
+    end_time: endLocal.time,
     duration_min: durationMin,
     price: booking.price || null,
     booking_type: booking.booking_type,
-    court: booking.resource_name || null,
-    signed_up: signedUp,
+    court: courts.length <= 1 ? courts[0] || null : `${courts.length} courts`,
+    signed_up: participantIds.size,
   };
 }
 
@@ -316,8 +341,8 @@ app.get("/api/events", async (req, res) => {
   try {
     const bookings = await fetchPlaytomicBookings();
 
-    const events = bookings
-      .map(mapBookingToEvent)
+    const events = groupEventBookings(bookings)
+      .map(mapBookingGroup)
       .filter((e) => e.date === date)
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
