@@ -13,8 +13,18 @@ const launchIndex = path.join(launchDir, "index.html");
 const app = express();
 app.use(express.json({ limit: "32kb" }));
 
-/** Set in production (e.g. Railway). Make returns 410 "Webhook not found" when the scenario hook was deleted or rotated. */
+/**
+ * Signup delivery. We prefer subscribing the lead straight to Klaviyo (robust,
+ * no third-party relay). The legacy Make.com webhook is kept only as a fallback
+ * for when KLAVIYO_API_KEY is not yet set — Make returns 410 once its scenario
+ * hook is deleted/rotated, which silently dropped signups (the bug this fixes).
+ */
 const interestWebhookUrl = process.env.MAKE_INTEREST_WEBHOOK_URL?.trim();
+const KLAVIYO_API_KEY = process.env.KLAVIYO_API_KEY?.trim();
+// The Klaviyo list interest signups join. Defaults to Foundry's "Email List".
+const KLAVIYO_INTEREST_LIST_ID =
+  process.env.KLAVIYO_INTEREST_LIST_ID?.trim() || "T4pSUu";
+const KLAVIYO_REVISION = "2026-04-15";
 
 const E164_MOBILE_REGEX = /^\+[1-9]\d{6,14}$/;
 
@@ -30,10 +40,92 @@ const interestPayloadSchema = z.object({
     z.string().regex(E164_MOBILE_REGEX).optional(),
   ),
   source: z.enum(["home", "memberships", "contact", "book"]).optional(),
-  // SMS opt-in consent captured at the form (10DLC). Forwarded so the lead record
+  // SMS opt-in consent captured at the form (10DLC). Recorded so the lead record
   // shows whether the person agreed to receive texts.
   sms_consent: z.boolean().optional(),
+  // Self-reported padel level — feeds a "Beginners" Klaviyo segment.
+  level: z.enum(["new", "beginner", "intermediate", "advanced"]).optional(),
 });
+
+async function klaviyo(method, apiPath, body) {
+  const res = await fetch(`https://a.klaviyo.com/api${apiPath}`, {
+    method,
+    headers: {
+      Authorization: `Klaviyo-API-Key ${KLAVIYO_API_KEY}`,
+      revision: KLAVIYO_REVISION,
+      accept: "application/json",
+      ...(body ? { "content-type": "application/json" } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  let json = {};
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = { raw: text };
+  }
+  return { status: res.status, json };
+}
+
+/**
+ * Upsert the profile (so source/level/consent properties stick — segments key
+ * off them) and subscribe it to the interest list with email marketing consent.
+ */
+async function subscribeToKlaviyo({ email, mobile, source, level, sms_consent }) {
+  const properties = {};
+  if (source) properties.signup_source = source;
+  if (level) properties.padel_level = level;
+  // Record the SMS opt-in for 10DLC proof-of-consent (audit trail on the profile).
+  if (sms_consent !== undefined) properties.sms_consent = sms_consent;
+
+  const attrs = { email, properties };
+  if (mobile) attrs.phone_number = mobile;
+
+  const create = await klaviyo("POST", "/profiles", {
+    data: { type: "profile", attributes: attrs },
+  });
+  if (create.status === 409) {
+    const id = create.json?.errors?.[0]?.meta?.duplicate_profile_id;
+    if (id && Object.keys(properties).length) {
+      await klaviyo("PATCH", `/profiles/${id}`, {
+        data: { type: "profile", id, attributes: { properties } },
+      });
+    }
+  } else if (create.status !== 201) {
+    throw new Error(
+      `profile upsert ${create.status}: ${JSON.stringify(create.json).slice(0, 200)}`,
+    );
+  }
+
+  const sub = await klaviyo("POST", "/profile-subscription-bulk-create-jobs", {
+    data: {
+      type: "profile-subscription-bulk-create-job",
+      attributes: {
+        custom_source: "Website interest form",
+        profiles: {
+          data: [
+            {
+              type: "profile",
+              attributes: {
+                email,
+                subscriptions: { email: { marketing: { consent: "SUBSCRIBED" } } },
+              },
+            },
+          ],
+        },
+      },
+      relationships: {
+        list: { data: { type: "list", id: KLAVIYO_INTEREST_LIST_ID } },
+      },
+    },
+  });
+  if (![200, 201, 202].includes(sub.status)) {
+    throw new Error(
+      `subscribe ${sub.status}: ${JSON.stringify(sub.json).slice(0, 200)}`,
+    );
+  }
+}
 
 app.post("/api/register-interest", async (req, res) => {
   const parsed = interestPayloadSchema.safeParse(req.body);
@@ -47,9 +139,22 @@ app.post("/api/register-interest", async (req, res) => {
     return res.status(400).json({ error: "Invalid request payload." });
   }
 
+  // Preferred path: subscribe directly to Klaviyo (no fragile Make.com relay).
+  if (KLAVIYO_API_KEY) {
+    try {
+      await subscribeToKlaviyo(parsed.data);
+      return res.status(200).json({ ok: true });
+    } catch (error) {
+      console.error("[register-interest] Klaviyo subscribe failed", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return res.status(502).json({ error: "Signup service unavailable." });
+    }
+  }
+
   if (!interestWebhookUrl) {
     console.error(
-      "[register-interest] MAKE_INTEREST_WEBHOOK_URL is missing — cannot forward signup data.",
+      "[register-interest] No KLAVIYO_API_KEY and no MAKE_INTEREST_WEBHOOK_URL — cannot store signup.",
     );
     return res.status(503).json({ error: "Signup service is not configured." });
   }
