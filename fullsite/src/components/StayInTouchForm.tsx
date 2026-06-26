@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { generateChallenge } from "@/lib/interestWebhook";
+import SmsConsentCheckbox from "@/components/SmsConsentCheckbox";
 import {
   Select,
   SelectContent,
@@ -49,6 +50,7 @@ const StayInTouchForm = ({
   const [email, setEmail] = useState("");
   const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [nationalDigits, setNationalDigits] = useState("");
+  const [smsConsent, setSmsConsent] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [captcha, setCaptcha] = useState(generateChallenge);
   const [captchaInput, setCaptchaInput] = useState("");
@@ -122,12 +124,17 @@ const StayInTouchForm = ({
         email: string;
         source: StayInTouchSource;
         mobile?: string;
+        sms_consent?: boolean;
       } = {
         name: name.trim(),
         email: email.trim(),
         source,
       };
-      if (mobile) body.mobile = mobile;
+      // Tie SMS consent to the number: only meaningful when a mobile is given.
+      if (mobile) {
+        body.mobile = mobile;
+        body.sms_consent = smsConsent;
+      }
 
       const res = await fetch(REGISTER_INTEREST_ENDPOINT, {
         method: "POST",
@@ -245,6 +252,11 @@ const StayInTouchForm = ({
                   className="ml-3 w-full min-w-0 bg-transparent font-body text-sm tracking-widest text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </div>
+              <SmsConsentCheckbox
+                id={`${source}-sms-consent`}
+                checked={smsConsent}
+                onChange={setSmsConsent}
+              />
             </div>
 
             <div aria-hidden="true" className="absolute -left-[9999px]">

@@ -40,6 +40,9 @@ const interestPayloadSchema = z.object({
     z.string().regex(E164_MOBILE_REGEX).optional(),
   ),
   source: z.enum(["home", "memberships", "contact", "book"]).optional(),
+  // SMS opt-in consent captured at the form (10DLC). Recorded so the lead record
+  // shows whether the person agreed to receive texts.
+  sms_consent: z.boolean().optional(),
   // Self-reported padel level — feeds a "Beginners" Klaviyo segment.
   level: z.enum(["new", "beginner", "intermediate", "advanced"]).optional(),
 });
@@ -66,13 +69,15 @@ async function klaviyo(method, apiPath, body) {
 }
 
 /**
- * Upsert the profile (so source/level properties stick — segments key off them)
- * and subscribe it to the interest list with email marketing consent.
+ * Upsert the profile (so source/level/consent properties stick — segments key
+ * off them) and subscribe it to the interest list with email marketing consent.
  */
-async function subscribeToKlaviyo({ email, mobile, source, level }) {
+async function subscribeToKlaviyo({ email, mobile, source, level, sms_consent }) {
   const properties = {};
   if (source) properties.signup_source = source;
   if (level) properties.padel_level = level;
+  // Record the SMS opt-in for 10DLC proof-of-consent (audit trail on the profile).
+  if (sms_consent !== undefined) properties.sms_consent = sms_consent;
 
   const attrs = { email, properties };
   if (mobile) attrs.phone_number = mobile;
