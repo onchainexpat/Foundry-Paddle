@@ -24,9 +24,17 @@ const SOURCE_META: Record<
 type Props = { source: Source };
 const REGISTER_INTEREST_ENDPOINT = "/api/register-interest";
 
+const LEVELS: { value: string; label: string }[] = [
+  { value: "new", label: "NEW TO PADEL" },
+  { value: "beginner", label: "BEGINNER" },
+  { value: "intermediate", label: "INTERMEDIATE" },
+  { value: "advanced", label: "ADVANCED" },
+];
+
 const InterestEmailForm = ({ source }: Props) => {
   const meta = SOURCE_META[source];
   const [email, setEmail] = useState("");
+  const [level, setLevel] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [captcha, setCaptcha] = useState(generateChallenge);
   const [captchaInput, setCaptchaInput] = useState("");
@@ -71,6 +79,7 @@ const InterestEmailForm = ({ source }: Props) => {
           name: meta.listName,
           email: email.trim(),
           source,
+          level: level || undefined,
         }),
       });
 
@@ -106,6 +115,29 @@ const InterestEmailForm = ({ source }: Props) => {
         maxLength={255}
         className="w-full border border-border bg-secondary px-5 py-4 font-body text-sm tracking-widest text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
       />
+
+      <div>
+        <span className="block mb-2 font-body text-xs tracking-widest text-muted-foreground">
+          YOUR LEVEL (OPTIONAL)
+        </span>
+        <div className="grid grid-cols-2 gap-2">
+          {LEVELS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setLevel((cur) => (cur === opt.value ? "" : opt.value))}
+              aria-pressed={level === opt.value}
+              className={`border px-4 py-3 font-body text-xs tracking-widest transition-colors ${
+                level === opt.value
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div aria-hidden="true" className="absolute -left-[9999px]">
         <input
