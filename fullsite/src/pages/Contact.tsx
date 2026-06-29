@@ -45,8 +45,8 @@ const Contact = () => {
                 <div className="flex items-start gap-4">
                   <Clock size={18} className="text-primary mt-1 shrink-0" />
                   <div>
-                    <p className="font-body text-sm text-foreground">Opening 2026</p>
-                    <p className="font-body text-xs text-muted-foreground">Hours announced closer to opening</p>
+                    <p className="font-body text-sm text-foreground">Open Daily · 8AM–10PM</p>
+                    <p className="font-body text-xs text-muted-foreground">All 4 courts · 7 days a week</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">

@@ -29,23 +29,23 @@ const faqs = [
   },
   {
     q: "Do you offer coaching?",
-    a: "Yes. We'll have certified padel coaches offering private lessons, group clinics, and structured programmes for all levels — from first-timers to competitive players.",
+    a: "Yes. Our certified padel coaches offer private lessons, group clinics, and structured programmes for all levels — from first-timers to competitive players. See what's on via the Schedule page.",
   },
   {
     q: "What should I wear?",
-    a: "Comfortable athletic wear and non-marking court shoes. No special padel clothing required, though our pro shop will carry performance apparel.",
+    a: "Comfortable athletic wear and non-marking court shoes. No special padel clothing required, and our pro shop stocks balls, racquets, and performance apparel if you need anything.",
   },
   {
-    q: "Will there be leagues and tournaments?",
-    a: "Yes. We're planning regular social leagues, competitive tournaments, and inter-club events. Members will get priority registration and discounted entry.",
+    q: "Do you run leagues and tournaments?",
+    a: "Yes. We run regular tournaments and open play, with social leagues and inter-club events too. Members get priority registration and discounted entry.",
   },
   {
     q: "Where exactly is Foundry Padel?",
     a: "We're in St. John's, Portland — right next to Cathedral Park at 8613 N Crawford St, Portland, OR 97203. Directions and map links are on our Contact page.",
   },
   {
-    q: "When are you opening?",
-    a: "We're targeting May 2026. Sign up for our mailing list to be the first to know the exact date and get early access to memberships.",
+    q: "What are your hours?",
+    a: "We're open! All four courts are available every day from 8:00 AM to 10:00 PM. Book a court online or through the Playtomic app, and check the Schedule page for clinics, open play, lessons, and tournaments.",
   },
 ];
 
