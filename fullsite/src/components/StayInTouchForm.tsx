@@ -29,11 +29,15 @@ type Props = {
 const REGISTER_INTEREST_ENDPOINT = "/api/register-interest";
 const DEFAULT_COUNTRY_CODE = "US";
 
-const LEVELS: { value: string; label: string }[] = [
-  { value: "new", label: "NEW TO PADEL" },
-  { value: "beginner", label: "BEGINNER" },
-  { value: "intermediate", label: "INTERMEDIATE" },
-  { value: "advanced", label: "ADVANCED" },
+// Multi-select interests — people pick what they want emails about. Unlike a
+// skill level (which they grow out of), these stay relevant over time.
+const INTERESTS: { value: string; label: string }[] = [
+  { value: "coaching", label: "COACHING" },
+  { value: "clinics", label: "CLINICS & WORKSHOPS" },
+  { value: "open_play", label: "OPEN PLAY" },
+  { value: "tournaments", label: "TOURNAMENTS & LEAGUES" },
+  { value: "events", label: "EVENTS & SOCIALS" },
+  { value: "memberships", label: "MEMBERSHIPS" },
 ];
 
 const fieldClassName =
@@ -55,7 +59,7 @@ const StayInTouchForm = ({
 }: Props) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [level, setLevel] = useState("");
+  const [interests, setInterests] = useState<string[]>([]);
   const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [nationalDigits, setNationalDigits] = useState("");
   const [smsConsent, setSmsConsent] = useState(false);
@@ -86,6 +90,12 @@ const StayInTouchForm = ({
   const handleNationalChange = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, nationalMax);
     setNationalDigits(digits);
+  };
+
+  const toggleInterest = (value: string) => {
+    setInterests((cur) =>
+      cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value],
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,13 +143,13 @@ const StayInTouchForm = ({
         source: StayInTouchSource;
         mobile?: string;
         sms_consent?: boolean;
-        level?: string;
+        interests?: string[];
       } = {
         name: name.trim(),
         email: email.trim(),
         source,
       };
-      if (level) body.level = level;
+      if (interests.length) body.interests = interests;
       // Tie SMS consent to the number: only meaningful when a mobile is given.
       if (mobile) {
         body.mobile = mobile;
@@ -222,24 +232,27 @@ const StayInTouchForm = ({
 
             <div>
               <p className="mb-2 font-body text-[10px] tracking-[0.18em] uppercase text-muted-foreground">
-                Your level (optional)
+                What are you into? (toggle any — we&apos;ll only email what you pick)
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {LEVELS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setLevel((cur) => (cur === opt.value ? "" : opt.value))}
-                    aria-pressed={level === opt.value}
-                    className={`border px-4 py-3 font-body text-xs tracking-widest transition-colors ${
-                      level === opt.value
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+                {INTERESTS.map((opt) => {
+                  const active = interests.includes(opt.value);
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => toggleInterest(opt.value)}
+                      aria-pressed={active}
+                      className={`border px-4 py-3 font-body text-xs tracking-widest transition-colors ${
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-secondary text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

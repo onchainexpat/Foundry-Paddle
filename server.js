@@ -43,8 +43,21 @@ const interestPayloadSchema = z.object({
   // SMS opt-in consent captured at the form (10DLC). Recorded so the lead record
   // shows whether the person agreed to receive texts.
   sms_consent: z.boolean().optional(),
-  // Self-reported padel level — feeds a "Beginners" Klaviyo segment.
-  level: z.enum(["new", "beginner", "intermediate", "advanced"]).optional(),
+  // What the lead wants to hear about — drives Klaviyo segmentation. Multi-select;
+  // replaces the old self-reported skill level (which leads grow out of).
+  interests: z
+    .array(
+      z.enum([
+        "coaching",
+        "clinics",
+        "open_play",
+        "tournaments",
+        "events",
+        "memberships",
+      ]),
+    )
+    .max(6)
+    .optional(),
 });
 
 async function klaviyo(method, apiPath, body) {
@@ -72,10 +85,11 @@ async function klaviyo(method, apiPath, body) {
  * Upsert the profile (so source/level/consent properties stick — segments key
  * off them) and subscribe it to the interest list with email marketing consent.
  */
-async function subscribeToKlaviyo({ email, mobile, source, level, sms_consent }) {
+async function subscribeToKlaviyo({ email, mobile, source, interests, sms_consent }) {
   const properties = {};
   if (source) properties.signup_source = source;
-  if (level) properties.padel_level = level;
+  // Store interests as a list property so segments can match "interests contains X".
+  if (interests?.length) properties.interests = [...new Set(interests)];
   // Record the SMS opt-in for 10DLC proof-of-consent (audit trail on the profile).
   if (sms_consent !== undefined) properties.sms_consent = sms_consent;
 
