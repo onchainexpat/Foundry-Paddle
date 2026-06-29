@@ -5,7 +5,6 @@ import {
   PLAYTOMIC_BOOKING_URL,
   PLAYTOMIC_PLAY_STORE_URL,
 } from "@/constants/booking";
-// import InterestEmailForm from "@/components/InterestEmailForm";
 
 const Book = () => {
   return (
@@ -113,22 +112,6 @@ const Book = () => {
             </div>
           </motion.div>
 
-          {/* Coming soon + email (replaced by Playtomic embed)
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="max-w-lg mx-auto text-center"
-          >
-            <h2 className="font-display text-5xl text-foreground mb-3">COMING SOON</h2>
-            <p className="font-body text-sm text-muted-foreground mb-8">
-              Online booking launches with our opening. Drop your email and we'll let you know the moment courts go live.
-            </p>
-
-            <InterestEmailForm source="book" />
-          </motion.div>
-          */}
           <div className="section-divider mt-16" />
         </div>
       </section>

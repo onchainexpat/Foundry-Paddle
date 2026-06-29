@@ -8,8 +8,6 @@ const root = join(__dirname, "..");
 const dist = join(root, "dist");
 const fullsiteRoot = join(root, "fullsite");
 const fullsiteDist = join(fullsiteRoot, "dist");
-const holdingTemp = join(root, ".temp-holding-build");
-const launchTarget = join(dist, "launch");
 
 function run(cmd, args, cwd = root) {
   const result = spawnSync(cmd, args, { cwd, stdio: "inherit", shell: false });
@@ -35,20 +33,5 @@ if (!existsSync(fullsiteDist)) {
 }
 cpSync(fullsiteDist, dist, { recursive: true });
 console.log("Copied fullsite/dist -> dist/");
-
-if (existsSync(holdingTemp)) rmSync(holdingTemp, { recursive: true });
-
-console.log("Building holding page for /launch…");
-run("npx", ["vite", "build", "--base", "/launch/", "--outDir", holdingTemp], root);
-
-const holdingIndex = join(holdingTemp, "index.html");
-if (!existsSync(holdingIndex)) {
-  console.error(`${holdingTemp}/index.html missing after vite build.`);
-  process.exit(1);
-}
-mkdirSync(launchTarget, { recursive: true });
-cpSync(holdingTemp, launchTarget, { recursive: true });
-rmSync(holdingTemp, { recursive: true });
-console.log("Copied holding build -> dist/launch/");
 
 console.log("dist/ ready for production.");
