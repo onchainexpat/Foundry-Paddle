@@ -191,7 +191,7 @@ const Schedule = () => {
             {selectedEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No events this day.</p>
             ) : (
-              selectedEvents.map((e) => <EventCard key={e.id} event={e} />)
+              selectedEvents.map((e) => <EventCard key={e.id} event={e} stacked />)
             )}
           </div>
         </SheetContent>
