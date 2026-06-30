@@ -15,4 +15,6 @@ export interface PadelEvent {
   court: string | null;
   /** Live roster count from Playtomic. Often 0 for clinics (sparse upstream data). */
   signed_up: number;
+  /** Deep link to the specific item on Playtomic (built server-side per type). */
+  book_url: string;
 }

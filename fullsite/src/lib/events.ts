@@ -23,16 +23,11 @@ export function groupEventsByDate(events: PadelEvent[]): Map<string, PadelEvent[
   return map;
 }
 
-/** Where the BOOK button should point for a given event.
- *  Playtomic exposes tournaments as public per-item pages (registration), so we
- *  deep-link those by their id (which is the tournament_id). Open matches and
- *  classes are app/login-gated on Playtomic with no public per-item URL, so
- *  those fall back to the club's tenant page. */
+/** Where the BOOK button points for a given event. The server builds a per-type
+ *  deep link (tournaments, classes/clinics, and open matches each use a
+ *  different Playtomic URL + id); fall back to the club page if it's missing. */
 export function eventBookingUrl(event: PadelEvent): string {
-  if (event.booking_type === "TOURNAMENT" && event.id) {
-    return `https://app.playtomic.io/tournaments/${event.id}`;
-  }
-  return PLAYTOMIC_TENANT_URL;
+  return event.book_url || PLAYTOMIC_TENANT_URL;
 }
 
 /** Sort booking types into a stable display order; unknown types go last. */

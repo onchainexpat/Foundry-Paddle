@@ -396,6 +396,30 @@ function groupEventBookings(bookings) {
   return [...groups.values()];
 }
 
+// Deep link to the specific item on Playtomic's consumer site. The id used
+// differs by type (verified against Playtomic's own share links):
+//   TOURNAMENT  -> /tournaments/{tournament_id}
+//   PUBLIC/COURSE_CLASS (clinics, coaching, class-run open play) -> /lesson_class/{activity_id}
+//   OPEN_MATCH  -> /matches/{object_id}   (NOT booking_id)
+// Anything else falls back to the club page.
+const PLAYTOMIC_APP = "https://app.playtomic.com";
+
+function bookingDeepLink(booking) {
+  switch (booking.booking_type) {
+    case "TOURNAMENT":
+      return `${PLAYTOMIC_APP}/tournaments/${booking.tournament_id || booking.activity_id}`;
+    case "PUBLIC_CLASS":
+    case "COURSE_CLASS":
+      return `${PLAYTOMIC_APP}/lesson_class/${booking.activity_id || booking.object_id}`;
+    case "OPEN_MATCH":
+      if (booking.object_id) return `${PLAYTOMIC_APP}/matches/${booking.object_id}`;
+      break;
+    default:
+      break;
+  }
+  return `${PLAYTOMIC_APP}/tenant/${PLAYTOMIC_TENANT_ID}`;
+}
+
 function mapBookingGroup(group) {
   const booking = group[0];
   const startUtc = new Date(booking.booking_start_date + "Z");
@@ -436,6 +460,7 @@ function mapBookingGroup(group) {
     booking_type: booking.booking_type,
     court: courts.length <= 1 ? courts[0] || null : `${courts.length} courts`,
     signed_up: participantIds.size,
+    book_url: bookingDeepLink(booking),
   };
 }
 
