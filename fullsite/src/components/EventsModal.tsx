@@ -9,9 +9,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, Clock, Loader2, ExternalLink } from "lucide-react";
-import { PLAYTOMIC_TENANT_URL } from "@/constants/booking";
 import { TYPE_LABELS, TYPE_COLORS } from "@/constants/events";
-import { formatTime } from "@/lib/events";
+import { eventBookingUrl, formatTime } from "@/lib/events";
 import type { PadelEvent } from "@/types/events";
 import { addDays, format, isSameDay, startOfDay } from "date-fns";
 
@@ -181,7 +180,7 @@ function EventCard({ event }: { event: PadelEvent }) {
         )}
 
         <a
-          href={PLAYTOMIC_TENANT_URL}
+          href={eventBookingUrl(event)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 border border-primary px-5 py-2 text-xs font-display tracking-widest text-primary transition-all hover:bg-primary hover:text-primary-foreground"

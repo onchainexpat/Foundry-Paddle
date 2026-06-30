@@ -1,4 +1,5 @@
 import { EVENT_TYPE_ORDER } from "@/constants/events";
+import { PLAYTOMIC_TENANT_URL } from "@/constants/booking";
 import type { PadelEvent } from "@/types/events";
 
 /** "13:00" -> "01:00 PM" */
@@ -20,6 +21,18 @@ export function groupEventsByDate(events: PadelEvent[]): Map<string, PadelEvent[
     else map.set(e.date, [e]);
   }
   return map;
+}
+
+/** Where the BOOK button should point for a given event.
+ *  Playtomic exposes tournaments as public per-item pages (registration), so we
+ *  deep-link those by their id (which is the tournament_id). Open matches and
+ *  classes are app/login-gated on Playtomic with no public per-item URL, so
+ *  those fall back to the club's tenant page. */
+export function eventBookingUrl(event: PadelEvent): string {
+  if (event.booking_type === "TOURNAMENT" && event.id) {
+    return `https://app.playtomic.io/tournaments/${event.id}`;
+  }
+  return PLAYTOMIC_TENANT_URL;
 }
 
 /** Sort booking types into a stable display order; unknown types go last. */
