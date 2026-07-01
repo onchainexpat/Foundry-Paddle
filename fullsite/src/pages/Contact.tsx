@@ -4,6 +4,7 @@ import { GOOGLE_MAPS_EMBED_SRC, GOOGLE_MAPS_URL } from "@/constants/location";
 import StayInTouchForm from "@/components/StayInTouchForm";
 import WhatsAppJoinLink from "@/components/WhatsAppJoinLink";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import Seo from "@/components/Seo";
 
 const TikTokIcon = ({ size = 20 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -14,6 +15,11 @@ const TikTokIcon = ({ size = 20 }: { size?: number }) => (
 const Contact = () => {
   return (
     <main className="bg-background min-h-screen pt-24">
+      <Seo
+        title="Contact & Location — 8613 N Crawford St | Foundry Padel Portland"
+        description="Find Foundry Padel at 8613 N Crawford St, Portland, OR 97203 — in St. Johns near Cathedral Park. Open daily 8am–10pm. Email, socials, map and directions."
+        path="/contact"
+      />
       <section className="py-20 px-6">
         <div className="mx-auto max-w-4xl text-center">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>

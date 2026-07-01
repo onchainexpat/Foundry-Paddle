@@ -584,7 +584,10 @@ app.use((req, res, next) => {
 // Serves fullsite assets at / (e.g. /assets/...).
 app.use(express.static(dist, { index: false }));
 
-// Main site SPA fallback
+// Main site fallback. Routes are prerendered to per-route HTML files by
+// vite-react-ssg (e.g. /book -> dist/book.html), so a direct hit or crawler
+// gets that page's own <title>/description/body. Unknown routes fall back to
+// index.html, which client-renders (e.g. the 404 page).
 app.get("*", (req, res) => {
   if (path.extname(req.path)) {
     return res.status(404).type("text/plain").send("Not found");
@@ -596,7 +599,16 @@ app.get("*", (req, res) => {
       .type("text/plain")
       .send("Main site not deployed. Ensure build command is: npm run build:railway");
   }
-  res.sendFile(indexHtml);
+  const clean = req.path.replace(/\/+$/, "") || "/";
+  let file = indexHtml;
+  if (clean !== "/") {
+    const candidate = path.join(dist, `${clean}.html`);
+    // Only serve prerendered files that resolve inside dist (guards traversal).
+    if (candidate.startsWith(dist + path.sep) && existsSync(candidate)) {
+      file = candidate;
+    }
+  }
+  res.sendFile(file);
 });
 
 const port = process.env.PORT || 3000;

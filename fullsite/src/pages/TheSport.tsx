@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import BookCTA from "@/components/BookCTA";
 import WistiaVideo from "@/components/WistiaVideo";
+import Seo from "@/components/Seo";
 
 const comparisons = [
   { sport: "Tennis", padel: "Enclosed glass walls — balls stay in play", other: "Open court — balls go out" },
@@ -18,6 +19,11 @@ const rules = [
 const TheSport = () => {
   return (
     <main className="bg-background min-h-screen pt-24">
+      <Seo
+        title="What Is Padel? The Sport Explained | Foundry Padel Portland"
+        description="New to padel? Learn the rules, how it differs from tennis, squash and pickleball, and why it's the world's fastest-growing racquet sport — then play in Portland at Foundry."
+        path="/the-sport"
+      />
       {/* Hero */}
       <section className="py-20 px-6">
         <div className="mx-auto max-w-4xl text-center">

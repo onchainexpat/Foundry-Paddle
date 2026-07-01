@@ -5,10 +5,16 @@ import {
   PLAYTOMIC_BOOKING_URL,
   PLAYTOMIC_PLAY_STORE_URL,
 } from "@/constants/booking";
+import Seo from "@/components/Seo";
 
 const Book = () => {
   return (
     <main className="bg-background min-h-screen pt-24">
+      <Seo
+        title="Book a Padel Court in Portland — $60 / 90 min | Foundry Padel"
+        description="Book an indoor padel court at Foundry in Portland — $60 per court for 90 minutes ($15 per player). 4 WPT-spec glass courts, open daily 8am–10pm. Reserve online."
+        path="/book"
+      />
       <section className="py-20 px-6">
         <div className="mx-auto max-w-4xl text-center">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
@@ -18,6 +24,12 @@ const Book = () => {
               <span className="font-body text-sm tracking-[0.2em] uppercase text-primary">Reserve Your Spot</span>
               <div className="h-px w-16 bg-primary" />
             </div>
+            <p className="font-body text-base text-secondary-foreground">
+              Drop-in play is{" "}
+              <span className="text-foreground font-semibold">$15 per player</span> —{" "}
+              <span className="text-foreground font-semibold">$60 per court</span> for a 90-minute
+              booking. Rackets and balls provided; no partner needed.
+            </p>
           </motion.div>
         </div>
       </section>

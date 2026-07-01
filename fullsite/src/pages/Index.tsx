@@ -4,7 +4,9 @@ import heroImage from "@/assets/hero-padel-blue.jpg";
 import BookCTA from "@/components/BookCTA";
 import StayInTouchForm from "@/components/StayInTouchForm";
 import { PartnerLogoBand } from "@/components/PartnerLogoBand";
+import Seo from "@/components/Seo";
 import { BOOK_PAGE_PATH } from "@/constants/booking";
+import { GOOGLE_MAPS_URL } from "@/constants/location";
 
 const features = [
   { label: "4", desc: "Indoor Courts" },
@@ -15,6 +17,11 @@ const features = [
 const Index = () => {
   return (
     <main className="bg-background min-h-screen">
+      <Seo
+        title="Foundry Padel — Portland's First Indoor Padel Club | St. Johns"
+        description="Play padel in Portland at Foundry — 4 indoor glass courts in St. Johns, next to Cathedral Park. $15 per player, $60 per 90-min court. Rackets provided, no partner needed. Open daily 8am–10pm."
+        path="/"
+      />
       {/* Hero */}
       <section className="relative h-screen w-full overflow-hidden">
         <div className="absolute inset-0">
@@ -34,18 +41,18 @@ const Index = () => {
               <div className="h-px w-12 bg-primary" />
             </div>
           </motion.div>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.5 }} className="mt-6 font-body text-sm tracking-[0.2em] uppercase text-muted-foreground">
-            Portland's First Padel Club — Where The Game Begins
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.5 }} className="mt-6 max-w-xl font-body text-sm tracking-[0.15em] uppercase text-muted-foreground">
+            Never held a padel racket? Most of Portland hasn't. Rackets provided, no partner needed — just book and play.
           </motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8 }} className="mt-10 flex gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8 }} className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
             <Link
               to={BOOK_PAGE_PATH}
-              className="border border-primary px-10 py-3 font-display text-lg tracking-widest text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+              className="bg-primary px-10 py-4 font-display text-lg tracking-widest text-primary-foreground shadow-[0_0_40px_-8px_hsl(var(--primary)/0.7)] transition-all hover:brightness-110"
             >
-              BOOK NOW
+              BOOK YOUR FIRST PLAY — $15
             </Link>
-            <Link to="/the-sport" className="border border-border px-10 py-3 font-display text-lg tracking-widest text-muted-foreground transition-all hover:border-foreground hover:text-foreground">
-              LEARN MORE
+            <Link to="/the-sport" className="border border-border px-8 py-4 font-display text-sm tracking-widest text-muted-foreground transition-all hover:border-foreground hover:text-foreground">
+              NEW TO PADEL? START HERE
             </Link>
           </motion.div>
         </div>
@@ -87,6 +94,68 @@ const Index = () => {
             </p>
           </motion.div>
           <div className="section-divider mt-20" />
+        </div>
+      </section>
+
+      {/* Plan your first visit — plain, crawlable answers for a first-time local */}
+      <section className="px-6 pb-8">
+        <div className="mx-auto max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8 }}
+            className="border border-border p-8 sm:p-12"
+          >
+            <h2 className="font-display text-3xl sm:text-4xl text-foreground mb-2 text-center">
+              CAN I JUST SHOW UP AND TRY IT?
+            </h2>
+            <p className="font-body text-sm text-muted-foreground mb-10 text-center">
+              Yes. Here's everything a first-timer needs to know.
+            </p>
+            <div className="grid gap-8 sm:grid-cols-2">
+              <div>
+                <h3 className="font-body text-xs tracking-[0.2em] uppercase text-primary mb-2">Pricing</h3>
+                <p className="font-body text-base text-secondary-foreground">
+                  $15 per player — $60 per court for a 90-minute booking. No membership required to play.
+                </p>
+              </div>
+              <div>
+                <h3 className="font-body text-xs tracking-[0.2em] uppercase text-primary mb-2">Hours</h3>
+                <p className="font-body text-base text-secondary-foreground">
+                  Open daily, 8:00 AM to 10:00 PM. All four indoor courts, morning to night.
+                </p>
+              </div>
+              <div>
+                <h3 className="font-body text-xs tracking-[0.2em] uppercase text-primary mb-2">Gear &amp; partners</h3>
+                <p className="font-body text-base text-secondary-foreground">
+                  Rackets and balls are provided. No partner needed — join open play and we'll match you by skill.
+                </p>
+              </div>
+              <div>
+                <h3 className="font-body text-xs tracking-[0.2em] uppercase text-primary mb-2">Where we are</h3>
+                <p className="font-body text-base text-secondary-foreground">
+                  <a
+                    href={GOOGLE_MAPS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-primary"
+                  >
+                    8613 N Crawford St, Portland, OR 97203
+                  </a>{" "}
+                  — in St. Johns, next to Cathedral Park.
+                </p>
+              </div>
+            </div>
+            <div className="mt-10 text-center">
+              <Link
+                to={BOOK_PAGE_PATH}
+                className="inline-block bg-primary px-10 py-4 font-display text-lg tracking-widest text-primary-foreground transition-all hover:brightness-110"
+              >
+                BOOK YOUR FIRST PLAY — $15
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 

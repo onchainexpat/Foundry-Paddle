@@ -3,34 +3,78 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Foundry Padel — Portland's First Padel Club</title>
-    <meta name="description" content="Portland's first indoor padel club. 4 courts, a café, and social spaces coming to Portland. Register your interest now and be the first to play." />
+    <!-- Title, description, canonical and social tags are owned per-route by
+         src/components/Seo.tsx (react-helmet), so each prerendered page emits
+         exactly one of each. Intentionally no static title element here. -->
     <meta name="author" content="Foundry Padel" />
-    <link rel="canonical" href="https://www.foundrypadel.com" />
 
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <meta property="og:title" content="Foundry Padel — Portland's First Padel Club" />
-    <meta property="og:description" content="Portland's first indoor padel club. 4 courts, a café, and social spaces coming to Portland. Register your interest now and be the first to play." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.foundrypadel.com" />
-    <meta property="og:image" content="https://www.foundrypadel.com/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:site_name" content="Foundry Padel" />
-    <meta property="og:locale" content="en_US" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Foundry Padel — Portland's First Padel Club" />
-    <meta name="twitter:description" content="Portland's first indoor padel club. 4 courts, a café, and social spaces coming to Portland. Register your interest now and be the first to play." />
-    <meta name="twitter:image" content="https://www.foundrypadel.com/og-image.png" />
+    <!-- LocalBusiness / SportsActivityLocation structured data (static, always
+         crawlable regardless of JS). Powers "padel Portland / St. Johns" and the
+         local pack. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SportsActivityLocation",
+        "@id": "https://www.foundrypadel.com/#club",
+        "name": "Foundry Padel",
+        "description": "Portland's first indoor padel club — four panoramic glass courts, a café, and social spaces in St. Johns, next to Cathedral Park. Rackets and balls provided, and no partner needed.",
+        "url": "https://www.foundrypadel.com",
+        "image": "https://www.foundrypadel.com/og-image.png",
+        "email": "portland@foundrypadel.com",
+        "sport": "Padel",
+        "priceRange": "$$",
+        "currenciesAccepted": "USD",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "8613 N Crawford St",
+          "addressLocality": "Portland",
+          "addressRegion": "OR",
+          "postalCode": "97203",
+          "addressCountry": "US"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 45.5897,
+          "longitude": -122.7563
+        },
+        "areaServed": "Portland, Oregon",
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+              "Sunday"
+            ],
+            "opens": "08:00",
+            "closes": "22:00"
+          }
+        ],
+        "sameAs": [
+          "https://instagram.com/foundrypadelpdx",
+          "https://www.facebook.com/share/1Cerw2CTec/?mibextid=wwXIfr",
+          "https://tiktok.com/@foundry.padel"
+        ],
+        "makesOffer": {
+          "@type": "Offer",
+          "name": "Drop-in padel court booking",
+          "price": "60",
+          "priceCurrency": "USD",
+          "description": "$60 per court for a 90-minute booking ($15 per player). Rackets and balls provided."
+        }
+      }
+    </script>
   </head>
 
   <body>
     <div id="root"></div>
-    <script src="https://fast.wistia.com/player.js" async></script>
-    <script src="https://fast.wistia.com/embed/jxjc5ma996.js" async type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

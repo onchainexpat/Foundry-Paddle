@@ -1,10 +1,30 @@
+import { useEffect } from "react";
+
 const MEDIA_ID = "jxjc5ma996";
 
+// Wistia's player runtime + this media's embed. Loaded from the component (not
+// index.html) so the static build doesn't treat the module script as an entry.
+const WISTIA_SCRIPTS = [
+  { src: "https://fast.wistia.com/player.js", module: false },
+  { src: `https://fast.wistia.com/embed/${MEDIA_ID}.js`, module: true },
+];
+
 /**
- * Wistia web component (scripts in index.html). Wrapper matches Foundry chrome:
- * primary border, subtle glow, loading swatch via global CSS.
+ * Wistia web component. Wrapper matches Foundry chrome: primary border, subtle
+ * glow, loading swatch via global CSS.
  */
 const WistiaVideo = () => {
+  useEffect(() => {
+    for (const { src, module } of WISTIA_SCRIPTS) {
+      if (document.querySelector(`script[src="${src}"]`)) continue;
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      if (module) script.type = "module";
+      document.body.appendChild(script);
+    }
+  }, []);
+
   return (
     <div className="relative w-full">
       <div

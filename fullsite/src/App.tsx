@@ -1,10 +1,5 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import type { RouteRecord } from "vite-react-ssg";
+import Layout from "./Layout";
 import Index from "./pages/Index";
 import TheSport from "./pages/TheSport";
 import TheClub from "./pages/TheClub";
@@ -15,47 +10,27 @@ import Contact from "./pages/Contact";
 import Book from "./pages/Book";
 import Privacy from "./pages/Privacy";
 import SmsTerms from "./pages/SmsTerms";
-
 import NotFound from "./pages/NotFound";
-import ScrollToTop from "@/components/ScrollToTop";
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop />
-        <Routes>
-          <Route
-            path="*"
-            element={
-              <>
-                <Header />
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/the-sport" element={<TheSport />} />
-                  <Route path="/the-club" element={<TheClub />} />
-                  <Route path="/schedule" element={<Schedule />} />
-                  <Route path="/memberships" element={<Memberships />} />
-                  <Route path="/faq" element={<FAQ />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/book" element={<Book />} />
-                  <Route path="/privacy" element={<Privacy />} />
-                  <Route path="/sms-terms" element={<SmsTerms />} />
-                  <Route path="/terms" element={<SmsTerms />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <Footer />
-              </>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
+// Route table consumed by vite-react-ssg. Every static path below is rendered to
+// a real HTML file at build time; the "*" catch-all stays client-only.
+export const routes: RouteRecord[] = [
+  {
+    path: "/",
+    element: <Layout />,
+    children: [
+      { index: true, element: <Index /> },
+      { path: "the-sport", element: <TheSport /> },
+      { path: "the-club", element: <TheClub /> },
+      { path: "schedule", element: <Schedule /> },
+      { path: "memberships", element: <Memberships /> },
+      { path: "faq", element: <FAQ /> },
+      { path: "contact", element: <Contact /> },
+      { path: "book", element: <Book /> },
+      { path: "privacy", element: <Privacy /> },
+      { path: "sms-terms", element: <SmsTerms /> },
+      { path: "terms", element: <SmsTerms /> },
+      { path: "*", element: <NotFound /> },
+    ],
+  },
+];

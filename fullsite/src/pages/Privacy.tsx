@@ -1,9 +1,16 @@
+import Seo from "@/components/Seo";
+
 const LAST_UPDATED = "June 24, 2026";
 const CONTACT_EMAIL = "portland@foundrypadel.com";
 
 const Privacy = () => {
   return (
     <main className="bg-background min-h-screen pt-24">
+      <Seo
+        title="Privacy Policy | Foundry Padel"
+        description="How Foundry Padel collects, uses and protects your information, including SMS messaging privacy."
+        path="/privacy"
+      />
       <section className="py-16 px-6">
         <div className="mx-auto max-w-3xl">
           <h1 className="font-display text-5xl sm:text-6xl text-foreground mb-3">Privacy Policy</h1>

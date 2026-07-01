@@ -24,6 +24,7 @@ import { useScheduleEvents } from "@/hooks/useScheduleEvents";
 import MonthGrid from "@/components/schedule/MonthGrid";
 import AgendaList from "@/components/schedule/AgendaList";
 import EventCard from "@/components/schedule/EventCard";
+import Seo from "@/components/Seo";
 
 const today = startOfDay(new Date());
 const thisMonth = startOfMonth(today);
@@ -64,6 +65,11 @@ const Schedule = () => {
 
   return (
     <main className="min-h-screen bg-background pt-24">
+      <Seo
+        title="Schedule — Clinics, Open Play & Tournaments | Foundry Padel"
+        description="See what's on at Foundry Padel in Portland: beginner clinics, open play, coaching and tournaments. Book your spot on Playtomic."
+        path="/schedule"
+      />
       <section className="px-6 py-16">
         <div className="mx-auto max-w-6xl">
           {/* Header */}

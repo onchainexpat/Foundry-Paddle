@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import BookCTA from "@/components/BookCTA";
+import Seo from "@/components/Seo";
 
 const spaces = [
   {
@@ -35,6 +36,11 @@ const spaces = [
 const TheClub = () => {
   return (
     <main className="bg-background min-h-screen pt-24">
+      <Seo
+        title="The Club — 4 Indoor Courts, Café & Pro Shop | Foundry Padel"
+        description="Four WPT-spec panoramic glass courts, a café, social spaces and a pro shop in St. Johns, Portland — steps from Cathedral Park. Tour Foundry Padel."
+        path="/the-club"
+      />
       {/* Hero */}
       <section className="py-20 px-6">
         <div className="mx-auto max-w-4xl text-center">

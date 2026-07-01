@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Seo from "@/components/Seo";
 
 const LAST_UPDATED = "June 24, 2026";
 const CONTACT_EMAIL = "portland@foundrypadel.com";
@@ -6,6 +7,11 @@ const CONTACT_EMAIL = "portland@foundrypadel.com";
 const SmsTerms = () => {
   return (
     <main className="bg-background min-h-screen pt-24">
+      <Seo
+        title="SMS Terms | Foundry Padel"
+        description="Terms for Foundry Padel SMS notifications: opt-in, message frequency, rates, and how to opt out (reply STOP)."
+        path="/sms-terms"
+      />
       <section className="py-16 px-6">
         <div className="mx-auto max-w-3xl">
           <h1 className="font-display text-5xl sm:text-6xl text-foreground mb-3">SMS Terms</h1>

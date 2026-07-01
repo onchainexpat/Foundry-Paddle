@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import BookCTA from "@/components/BookCTA";
+import Seo from "@/components/Seo";
 import WhatsAppJoinLink from "@/components/WhatsAppJoinLink";
 
 interface Faq {
@@ -65,6 +66,11 @@ const faqs: Faq[] = [
 const FAQ = () => {
   return (
     <main className="bg-background min-h-screen pt-24">
+      <Seo
+        title="Padel FAQ — Beginners, Gear, Hours & Location | Foundry Padel"
+        description="Never played padel? A first-timer's guide: no partner needed, rackets and balls provided, hours (8am–10pm daily), pricing, and how to find us in St. Johns, Portland."
+        path="/faq"
+      />
       <section className="py-20 px-6">
         <div className="mx-auto max-w-4xl text-center">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
