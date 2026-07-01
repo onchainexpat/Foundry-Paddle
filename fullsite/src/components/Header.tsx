@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BOOK_PAGE_PATH } from "@/constants/booking";
+import { APP_URL } from "@/constants/app";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import EventsModal from "@/components/EventsModal";
 
-const navLinks = [
+type NavItem =
+  | { label: string; path: string }
+  | { label: string; href: string; external: true };
+
+const navLinks: NavItem[] = [
   { label: "HOME", path: "/" },
   { label: "THE SPORT", path: "/the-sport" },
   { label: "THE CLUB", path: "/the-club" },
@@ -13,6 +18,7 @@ const navLinks = [
   { label: "MEMBERSHIPS", path: "/memberships" },
   { label: "FAQ", path: "/faq" },
   { label: "CONTACT", path: "/contact" },
+  { label: "APP", href: APP_URL, external: true },
 ];
 
 const Header = () => {
@@ -28,17 +34,29 @@ const Header = () => {
 
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={`font-body text-xs tracking-[0.2em] uppercase transition-colors hover:text-primary ${
-                location.pathname === link.path ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) =>
+            "external" in link ? (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-body text-xs tracking-[0.2em] uppercase text-muted-foreground transition-colors hover:text-primary"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`font-body text-xs tracking-[0.2em] uppercase transition-colors hover:text-primary ${
+                  location.pathname === link.path ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ),
+          )}
           <EventsModal>
             <button className="border border-muted-foreground/40 px-5 py-2 font-display text-xs tracking-widest text-muted-foreground transition-all hover:border-primary hover:text-primary">
               EVENTS
@@ -74,18 +92,31 @@ const Header = () => {
             className="lg:hidden overflow-hidden border-t border-border/50 bg-background"
           >
             <div className="flex flex-col items-center gap-6 py-8">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setMobileOpen(false)}
-                  className={`font-body text-sm tracking-[0.2em] uppercase transition-colors hover:text-primary ${
-                    location.pathname === link.path ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) =>
+                "external" in link ? (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileOpen(false)}
+                    className="font-body text-sm tracking-[0.2em] uppercase text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={`font-body text-sm tracking-[0.2em] uppercase transition-colors hover:text-primary ${
+                      location.pathname === link.path ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                ),
+              )}
               <EventsModal>
                 <button
                   onClick={() => setMobileOpen(false)}

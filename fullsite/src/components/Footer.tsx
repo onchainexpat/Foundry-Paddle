@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Instagram, Facebook } from "lucide-react";
 import { BOOK_PAGE_PATH } from "@/constants/booking";
 import { GOOGLE_MAPS_EMBED_SRC, GOOGLE_MAPS_URL } from "@/constants/location";
+import { APP_URL } from "@/constants/app";
 import WhatsAppJoinLink from "@/components/WhatsAppJoinLink";
 
 const TikTokIcon = ({ size = 20 }: { size?: number }) => (
@@ -21,6 +22,7 @@ const footerLinks: FooterNavLink[] = [
   { label: "FAQ", path: "/faq" },
   { label: "Contact", path: "/contact" },
   { label: "Book a Court", path: BOOK_PAGE_PATH },
+  { label: "App", href: APP_URL, external: true },
   { label: "Privacy Policy", path: "/privacy" },
   { label: "SMS Terms", path: "/sms-terms" },
 ];
